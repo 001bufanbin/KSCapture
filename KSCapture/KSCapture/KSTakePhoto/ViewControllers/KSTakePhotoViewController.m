@@ -71,6 +71,10 @@
 }
 - (void)btnTakePhotoClicked:(UIButton *)btn
 {
+    if (![KSCaptureTool isAllowAccessCamera]) {
+        NSLog(@"请打开相机权限！");
+        return;
+    }
     NSLog(@"拍摄处理中,请稍后...");
 
     [self.takePhotoManager takePhotoSuccess:^(UIImage *imgPhoto) {

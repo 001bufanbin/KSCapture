@@ -19,7 +19,7 @@
 #define KSCaptureFrame         CGRectMake(0, 0, kAppWidth, kAppHeight)//拍摄区域
 
 //是否具有暂停功能 0-否；1-是
-#define kCanPause              0
+#define kCanPause              1
 
 //字体
 #define kTextFont            @"Helvetica"

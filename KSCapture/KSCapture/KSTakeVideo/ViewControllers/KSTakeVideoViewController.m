@@ -90,6 +90,12 @@
     [self dismissViewControllerAnimated:YES completion:nil];
 }
 
+- (void)btnRightClicked:(UIButton *)btn
+{
+    [self.recordManager stopRecord];
+    [self.viewOperate setViewCamera:KSRecordStateFinish];
+}
+
 - (void)btnFlashSwitchClicked:(UIButton *)btn
 {
     [self.recordManager switchTorchModelSuccess:^(AVCaptureTorchMode currentTorchMode) {
@@ -112,6 +118,35 @@
 
 - (void)btnRecordClicked:(UIButton *)btn
 {
+
+    if (![KSCaptureTool isAllowAccessCamera] || ![KSCaptureTool isAllowAccessMicrophone]) {
+        NSLog(@"请打开相机、麦克风权限！");
+        return;
+    }
+
+#if kCanPause
+    //KSRecordStatePrepare->KSRecordStateRecording->KSRecordStatePause->KSRecordStateResume->KSRecordStatePause ...
+    switch (self.recordManager.recordState) {
+        case KSRecordStatePrepare:
+            [self.recordManager startRecord];
+            [self.viewOperate setViewCamera:KSRecordStateRecording];
+            break;
+        case KSRecordStateRecording:
+            [self.recordManager pauseRecord];
+            [self.viewOperate setViewCamera:KSRecordStatePause];
+            break;
+        case KSRecordStatePause:
+            [self.recordManager resumeRecord];
+            [self.viewOperate setViewCamera:KSRecordStateResume];
+            break;
+        case KSRecordStateResume:
+            [self.recordManager pauseRecord];
+            [self.viewOperate setViewCamera:KSRecordStatePause];
+            break;
+        default:
+            break;
+    }
+#else
     //1.拍摄初始状态    -KSRecordStatePrepare
     //2.拍摄中状态      -KSRecordStateRecording
     //3.手动+自动结束状态-KSRecordStateFinish
@@ -127,11 +162,11 @@
             break;
         case KSRecordStateRecording:
             [self.recordManager stopRecord];
-            [self.viewOperate setBtnTorchForMode:AVCaptureTorchModeOff];
             break;
         default:
             break;
     }
+#endif
 }
 
 - (void)btnGiveUpClicked:(UIButton *)btn

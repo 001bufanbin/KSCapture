@@ -23,6 +23,11 @@
 //视频输出队列
 @property (nonatomic ,strong)dispatch_queue_t outPutQueue;
 
+//是否暂停->恢复
+@property (nonatomic ,assign)BOOL pausedToResume;
+//暂停时间偏移
+@property (nonatomic ,assign)CMTime timeOffset;
+
 @end
 
 @implementation KSTakeVideoManager
@@ -61,7 +66,8 @@
     if (self) {
         _recordState = KSRecordStatePrepare;
         self.videoPath = [KSCaptureTool videoFilePath];
-
+        self.pausedToResume = NO;
+        self.timeOffset = kCMTimeInvalid;
         //输入-音频
         if (self.audioInput && [self.session canAddInput:self.audioInput]) {
             [self.session addInput:self.audioInput];
@@ -83,29 +89,62 @@
 
 - (void)startRecord
 {
+    if (![KSCaptureTool isAllowAccessCamera] || ![KSCaptureTool isAllowAccessMicrophone]) {
+        NSLog(@"请打开相机、麦克风权限！");
+        return;
+    }
+    self.pausedToResume = NO;
+    self.timeOffset = kCMTimeInvalid;
     [self initAssetWriter];
     _recordState = KSRecordStateRecording;
 }
 - (void)pauseRecord
 {
+    self.pausedToResume = NO;
     _recordState = KSRecordStatePause;
 }
 - (void)resumeRecord
 {
+    self.pausedToResume = YES;
     _recordState = KSRecordStateResume;
 }
 - (void)stopRecord
 {
-    if (_recordState != KSRecordStateRecording) {
-        return;
+#if kCanPause
+    //在拍摄中、暂停、恢复拍摄，三个状态都可能停止
+    if (self.recordState == KSRecordStateRecording ||
+        self.recordState == KSRecordStatePause     ||
+        self.recordState == KSRecordStateResume) {
+        [self.writer stopWriting];
+        self.pausedToResume = NO;
+        self.timeOffset = kCMTimeInvalid;
+        _recordState = KSRecordStateFinish;
     }
-
-    [self.writer stopWriting];
-    _recordState = KSRecordStateFinish;
+#else
+    if (self.recordState == KSRecordStateRecording) {
+        [self.writer stopWriting];
+        _recordState = KSRecordStateFinish;
+    }
+#endif
 }
 
 - (void)giveUpRecord
 {
+#if kCanPause
+    if (self.recordState == KSRecordStateRecording ||
+        self.recordState == KSRecordStatePause     ||
+        self.recordState == KSRecordStateResume) {
+        if (![self.writer giveUpWriting]) {
+            [self.writer stopWriting];
+            [self deleteCurrentVideo];
+        }
+    } else {
+        [self deleteCurrentVideo];
+    }
+    self.pausedToResume = NO;
+    self.timeOffset = kCMTimeInvalid;
+    _recordState = KSRecordStatePrepare;
+#else
     if (self.recordState == KSRecordStateRecording) {
         if (![self.writer giveUpWriting]) {
             [self.writer stopWriting];
@@ -114,8 +153,8 @@
     } else {
         [self deleteCurrentVideo];
     }
-
     _recordState = KSRecordStatePrepare;
+#endif
 }
 
 - (BOOL)deleteCurrentVideo
@@ -162,9 +201,17 @@
         return;
     }
 
+#if kCanPause
+    //正在拍摄、恢复拍摄两个状态下才写入
+    if (self.recordState != KSRecordStateRecording &&
+        self.recordState != KSRecordStateResume) {
+        return;
+    }
+#else
     if (self.recordState != KSRecordStateRecording) {
         return;
     }
+#endif
 
     //加锁-当前状态属性改变，写完当前的buffer
     @synchronized (self) {
@@ -174,20 +221,63 @@
             //防止写入过程中当前buffer被释放
             CFRetain(sampleBuffer);
 
+            //计算暂停-恢复时间偏移；只在写入音频里面进行，防止两次计算偏移
+            if (self.pausedToResume) {
+                if (captureOutput == self.videoOutPut) {
+                    CFRelease(sampleBuffer);
+                    return;
+                }
+                [self calcuTimeOffsetForCurrentOutputSampleBuffer:sampleBuffer];
+                self.pausedToResume = NO;
+            }
+
+            //处理最终写入文件的buffer
+            CMSampleBufferRef bufferToWrite = NULL;
+            if (CMTIME_IS_VALID(self.timeOffset)) {
+                bufferToWrite = [KSCaptureTool createOffsetSampleBufferWithSampleBuffer:sampleBuffer withTimeOffset:self.timeOffset];
+            } else {
+                bufferToWrite = sampleBuffer;
+                CFRetain(bufferToWrite);
+            }
+
+            //写入操作
             if (captureOutput == self.videoOutPut) {
-                [self.writer startWritingSampleBuffer:sampleBuffer mediaType:AVMediaTypeVideo];
-                [self.writer appendWriteSampleBuffer:sampleBuffer mediaType:AVMediaTypeVideo];
+                [self.writer startWritingSampleBuffer:bufferToWrite mediaType:AVMediaTypeVideo];
+                [self.writer appendWriteSampleBuffer:bufferToWrite mediaType:AVMediaTypeVideo];
             } else if (captureOutput == self.audioOutPut) {
-                [self.writer startWritingSampleBuffer:sampleBuffer mediaType:AVMediaTypeAudio];
-                [self.writer appendWriteSampleBuffer:sampleBuffer mediaType:AVMediaTypeAudio];
+                [self.writer startWritingSampleBuffer:bufferToWrite mediaType:AVMediaTypeAudio];
+                [self.writer appendWriteSampleBuffer:bufferToWrite mediaType:AVMediaTypeAudio];
             }
 
             //写入完成释放buffer
+            if (bufferToWrite) {
+                CFRelease(bufferToWrite);
+            }
             CFRelease(sampleBuffer);
         }
 
     }
 
+}
+
+- (void)captureOutput:(AVCaptureOutput *)captureOutput didDropSampleBuffer:(CMSampleBufferRef)sampleBuffer fromConnection:(AVCaptureConnection *)connection
+{
+
+}
+
+- (void)calcuTimeOffsetForCurrentOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
+{
+    CMTime currentTimestamp = CMSampleBufferGetPresentationTimeStamp(sampleBuffer);
+    if (CMTIME_IS_VALID(currentTimestamp) && CMTIME_IS_VALID(self.writer.audioTimestamp)) {
+        if (CMTIME_IS_VALID(self.timeOffset)) {
+            currentTimestamp = CMTimeSubtract(currentTimestamp, self.timeOffset);
+        }
+        CMTime offset = CMTimeSubtract(currentTimestamp, self.writer.audioTimestamp);
+        self.timeOffset = CMTIME_IS_INVALID(self.timeOffset) ? offset : CMTimeAdd(self.timeOffset, offset);
+        NSLog(@"audioTimestamp == %f",CMTimeGetSeconds(self.writer.audioTimestamp));
+        NSLog(@"offset == %f",CMTimeGetSeconds(offset));
+        NSLog(@"new calculated offset %f valid (%d)", CMTimeGetSeconds(self.timeOffset), CMTIME_IS_VALID(self.timeOffset));
+    }
 }
 
 #pragma mark - KSVideoWriterDelegate
@@ -269,10 +359,7 @@
 
     KSVideoWriter *writer = [[KSVideoWriter alloc]initWithVideoPath:self.videoPath];
     [writer setVideoWriter:self.videoOutPut];
-    if (self.audioOutPut) {
-        [writer setAudioWriter:self.audioOutPut];
-    }
-    //writer.deviceOrientation = [KSMotionManager shareInstance].orientation;
+    [writer setAudioWriter:self.audioOutPut];
     [writer addInputs];
     writer.delegate = self;
     self.writer = writer;

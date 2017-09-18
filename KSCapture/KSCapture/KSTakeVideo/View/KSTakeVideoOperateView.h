@@ -12,10 +12,11 @@
 @protocol KSTakeVideoOperateViewDelegate <NSObject>
 
 - (void)btnDisMissClicked:(UIButton *)btn;
-- (void)btnCameraSwitchClicked:(UIButton *)btn;
+- (void)btnRightClicked:(UIButton *)btn;
 
 - (void)btnRecordClicked:(UIButton *)btn;
 - (void)btnFlashSwitchClicked:(UIButton *)btn;
+- (void)btnCameraSwitchClicked:(UIButton *)btn;
 
 - (void)btnGiveUpClicked:(UIButton *)btn;
 - (void)btnSureClicked:(UIButton *)btn;

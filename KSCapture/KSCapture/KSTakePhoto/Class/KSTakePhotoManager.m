@@ -47,6 +47,10 @@
 
 - (void)takePhotoSuccess:(TakePhotoSuccessBlock)success failed:(TakePhotoFailedBlock)failed
 {
+    if (![KSCaptureTool isAllowAccessCamera]) {
+        NSLog(@"请打开相机权限！");
+        return;
+    }
     AVCaptureConnection *stillImageConnection = self.videoConnection;
     if (!stillImageConnection) {
         if (failed) {

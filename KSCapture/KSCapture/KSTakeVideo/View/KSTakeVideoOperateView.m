@@ -10,9 +10,9 @@
 #import "KSRecordProgressView.h"
 
 //顶部视图
-static CGFloat const kTopView_H    = 64;
+static CGFloat const kTopView_H    = 44;
 static CGFloat const kBtnTop_X     = 4;
-static CGFloat const kBtnTop_Y     = 20;
+static CGFloat const kBtnTop_Y     = 0;
 static CGFloat const kBtnTop_W     = 60;
 static CGFloat const kBtnTop_H     = 44;
 //拍摄视图
@@ -30,12 +30,13 @@ static CGFloat const kViewFinish_H = 50;
 @property (nonatomic ,strong)UIView   *viewTop;     //顶部视图
 @property (nonatomic ,strong)UIButton *btnDissmiss; //退出拍摄
 @property (nonatomic ,strong)UILabel  *labTitle;    //标题
-@property (nonatomic ,strong)UIButton *btnCamera;   //摄像头切换
+@property (nonatomic ,strong)UIButton *btnRight;    //右边按钮
 
 @property (nonatomic ,strong)UIView   *viewRecord;  //底部拍摄视图
 @property (nonatomic ,strong)UIButton *btnRecord;   //拍摄按钮
 @property (nonatomic ,strong)KSRecordProgressView *progressView;//进度
 @property (nonatomic ,strong)UIButton *btnFlash;    //闪关灯切换
+@property (nonatomic ,strong)UIButton *btnCamera;   //摄像头切换
 
 @property (nonatomic ,strong)UIView   *viewFinish;  //拍摄完成视图
 @property (nonatomic ,strong)UIButton *btnGiveUp;   //放弃按钮
@@ -85,6 +86,8 @@ static CGFloat const kViewFinish_H = 50;
     
     [self.viewTop addSubview:self.btnDissmiss];
     [self.viewTop addSubview:self.labTitle];
+    [self.viewTop addSubview:self.btnRight];
+    self.btnRight.hidden = YES;
 }
 
 - (void)initRecordView
@@ -94,6 +97,7 @@ static CGFloat const kViewFinish_H = 50;
     [self.viewRecord addSubview:self.btnRecord];
     [self.viewRecord addSubview:self.progressView];
     [self.viewRecord addSubview:self.btnFlash];
+    [self.viewRecord addSubview:self.btnCamera];
 }
 
 - (void)initFinishView
@@ -118,11 +122,13 @@ static CGFloat const kViewFinish_H = 50;
 #pragma mark - private method
 - (void)setViewRecordForState:(KSRecordState)state
 {
+
+#if kCanPause
     switch (state) {
         case KSRecordStatePrepare:
         {
-            //取消按钮
             self.btnDissmiss.hidden = NO;
+            self.btnRight.hidden = YES;
             //拍摄按钮
             self.btnRecord.frame = self.rectBtnRecordNormal;
             _btnRecord.layer.cornerRadius = kBtnRecord_W/2;
@@ -138,8 +144,99 @@ static CGFloat const kViewFinish_H = 50;
             break;
         case KSRecordStateRecording:
         {
-            //取消按钮
             self.btnDissmiss.hidden = NO;
+            self.btnRight.hidden = NO;
+            //拍摄按钮
+            [self.btnRecord setTitle:@"暂停" forState:UIControlStateNormal];
+            self.btnRecord.frame = self.rectBtnRecordRecording;
+            [UIView animateWithDuration:0.2 animations:^{
+                _btnRecord.layer.cornerRadius = kProgress_W/2;
+                self.btnRecord.layer.borderWidth = 26.0;
+            }];
+            //拍摄页面
+            self.viewRecord.frame = self.rectViewRecordShow;
+            //拍摄完成页面
+            self.viewFinish.frame = self.rectViewFinishHidden;
+        }
+            break;
+        case KSRecordStatePause:
+        {
+            self.btnDissmiss.hidden = NO;
+            self.btnRight.hidden = NO;
+            //拍摄按钮
+            [self.btnRecord setTitle:@"继续" forState:UIControlStateNormal];
+            self.btnRecord.frame = self.rectBtnRecordRecording;
+            [UIView animateWithDuration:0.2 animations:^{
+                _btnRecord.layer.cornerRadius = kProgress_W/2;
+                self.btnRecord.layer.borderWidth = 26.0;
+            }];
+            //拍摄页面
+            self.viewRecord.frame = self.rectViewRecordShow;
+            //拍摄完成页面
+            self.viewFinish.frame = self.rectViewFinishHidden;
+        }
+            break;
+        case KSRecordStateResume:
+        {
+            self.btnDissmiss.hidden = NO;
+            self.btnRight.hidden = NO;
+            //拍摄按钮
+            [self.btnRecord setTitle:@"暂停" forState:UIControlStateNormal];
+            self.btnRecord.frame = self.rectBtnRecordRecording;
+            [UIView animateWithDuration:0.2 animations:^{
+                _btnRecord.layer.cornerRadius = kProgress_W/2;
+                self.btnRecord.layer.borderWidth = 26.0;
+            }];
+            //拍摄页面
+            self.viewRecord.frame = self.rectViewRecordShow;
+            //拍摄完成页面
+            self.viewFinish.frame = self.rectViewFinishHidden;
+        }
+            break;
+        case KSRecordStateFinish:
+        {
+            self.btnDissmiss.hidden = YES;
+            self.btnRight.hidden = YES;
+            //拍摄页面
+            self.viewRecord.frame = self.rectViewRecordHidden;
+            //拍摄按钮
+            self.btnRecord.frame = self.rectBtnRecordRecording;
+            _btnRecord.layer.cornerRadius = kBtnRecord_W/2;
+            self.btnRecord.layer.borderWidth = 10.0;
+            [self.btnRecord setTitle:@"" forState:UIControlStateNormal];
+            //拍摄完成页面
+            [UIView animateWithDuration:0.2 animations:^{
+                self.viewFinish.frame = self.rectViewFinishShow;
+            }];
+        }
+            break;
+
+        default:
+            break;
+    }
+#else
+    switch (state) {
+        case KSRecordStatePrepare:
+        {
+            self.btnDissmiss.hidden = NO;
+            self.btnRight.hidden = NO;
+            //拍摄按钮
+            self.btnRecord.frame = self.rectBtnRecordNormal;
+            _btnRecord.layer.cornerRadius = kBtnRecord_W/2;
+            self.btnRecord.layer.borderWidth = 10.0;
+            [self.btnRecord setTitle:@"拍摄" forState:UIControlStateNormal];
+            //拍摄页面
+            [UIView animateWithDuration:0.2 animations:^{
+                self.viewRecord.frame = self.rectViewRecordShow;
+            }];
+            //拍摄完成页面
+            self.viewFinish.frame = self.rectViewFinishHidden;
+        }
+            break;
+        case KSRecordStateRecording:
+        {
+            self.btnDissmiss.hidden = NO;
+            self.btnRight.hidden = NO;
             //拍摄按钮
             [self.btnRecord setTitle:@"" forState:UIControlStateNormal];
             self.btnRecord.frame = self.rectBtnRecordRecording;
@@ -155,8 +252,8 @@ static CGFloat const kViewFinish_H = 50;
             break;
         case KSRecordStateFinish:
         {
-            //取消按钮
             self.btnDissmiss.hidden = YES;
+            self.btnRight.hidden = YES;
             //拍摄页面
             self.viewRecord.frame = self.rectViewRecordHidden;
             //拍摄按钮
@@ -170,10 +267,11 @@ static CGFloat const kViewFinish_H = 50;
             }];
         }
             break;
-            
+
         default:
             break;
     }
+#endif
 }
 
 
@@ -187,7 +285,7 @@ static CGFloat const kViewFinish_H = 50;
         case KSRecordStatePrepare:
             [self.progressView resetProgress];
             break;
-        case KSRecordStateRecording:
+        case KSRecordStateRecording ... KSRecordStateResume:
             break;
         case KSRecordStateFinish:
             [self.progressView resetProgress];
@@ -215,10 +313,8 @@ static CGFloat const kViewFinish_H = 50;
 {
     switch (position) {
         case AVCaptureDevicePositionBack:
-            [self.btnCamera setTitle:@"Back" forState:UIControlStateNormal];
             break;
         case AVCaptureDevicePositionFront:
-            [self.btnCamera setTitle:@"Front" forState:UIControlStateNormal];
             break;
             
         default:
@@ -239,10 +335,10 @@ static CGFloat const kViewFinish_H = 50;
     }
 }
 
-- (void)btnCameraSwitchClicked:(UIButton *)btn
+- (void)btnRightClicked:(UIButton *)btn
 {
-    if (self.delegate && [self.delegate respondsToSelector:@selector(btnCameraSwitchClicked:)]) {
-        [self.delegate btnCameraSwitchClicked:btn];
+    if (self.delegate && [self.delegate respondsToSelector:@selector(btnRightClicked:)]) {
+        [self.delegate btnRightClicked:btn];
     }
 }
 
@@ -258,6 +354,13 @@ static CGFloat const kViewFinish_H = 50;
 {
     if (self.delegate && [self.delegate respondsToSelector:@selector(btnFlashSwitchClicked:)]) {
         [self.delegate btnFlashSwitchClicked:btn];
+    }
+}
+
+- (void)btnCameraSwitchClicked:(UIButton *)btn
+{
+    if (self.delegate && [self.delegate respondsToSelector:@selector(btnCameraSwitchClicked:)]) {
+        [self.delegate btnCameraSwitchClicked:btn];
     }
 }
 
@@ -313,20 +416,17 @@ static CGFloat const kViewFinish_H = 50;
     return _labTitle;
 }
 
-- (UIButton *)btnCamera
+- (UIButton *)btnRight
 {
-    if (!_btnCamera) {
+    if (!_btnRight) {
         CGRect rect = CGRectMake(kAppWidth-kBtnTop_X-kBtnTop_W, kBtnTop_Y, kBtnTop_W, kBtnTop_H);
-        _btnCamera = [[UIButton alloc]initWithFrame:rect];
-        [_btnCamera setTitle:@"Back" forState:UIControlStateNormal];
-        _btnCamera.clipsToBounds = YES;
-        _btnCamera.layer.cornerRadius = 3;
-        _btnCamera.layer.borderColor = RGBVCOLOR(0xd0d0d0).CGColor;
-        _btnCamera.layer.borderWidth = 0.5;
-        [_btnCamera setTitleColor:[UIColor blackColor] forState:UIControlStateNormal];
-        [_btnCamera addTarget:self action:@selector(btnCameraSwitchClicked:) forControlEvents:UIControlEventTouchUpInside];
+        _btnRight = [[UIButton alloc]initWithFrame:rect];
+        [_btnRight setTitle:@"完成" forState:UIControlStateNormal];
+        [_btnRight setTitleColor:RGBVCOLOR(0xffffff) forState:UIControlStateNormal];
+        _btnRight.titleLabel.font = KSFont(16);
+        [_btnRight addTarget:self action:@selector(btnRightClicked:) forControlEvents:UIControlEventTouchUpInside];
     }
-    return _btnCamera;
+    return _btnRight;
 }
 
 - (UIView *)viewRecord
@@ -370,15 +470,28 @@ static CGFloat const kViewFinish_H = 50;
 {
     if (!_btnFlash) {
         CGFloat fBtnEnd_X = kAppWidth/2+kBtnRecord_W/2;
-        CGFloat fBtnRecordEnd_End = kAppWidth - fBtnEnd_X;
-        CGFloat fBtn_space = (fBtnRecordEnd_End-kBtnTop_W)/2;
+        CGFloat fBtn_space = (kAppWidth-fBtnEnd_X-kBtnRecord_W*2)/3;
         CGFloat f_X = fBtnEnd_X + fBtn_space;
-        CGRect rect = CGRectMake(f_X, (kViewRecord_H-kBtnTop_H)/2, kBtnTop_W, kBtnTop_H);
+        CGRect rect = CGRectMake(f_X, (kViewRecord_H-kBtnRecord_H)/2, kBtnRecord_W, kBtnRecord_H);
         _btnFlash = [[UIButton alloc]initWithFrame:rect];
         [_btnFlash setImage:[UIImage imageNamed:@"KSCaptureFlash_Off"] forState:UIControlStateNormal];
         [_btnFlash addTarget:self action:@selector(btnFlashSwitchClicked:) forControlEvents:UIControlEventTouchUpInside];
     }
     return _btnFlash;
+}
+
+- (UIButton *)btnCamera
+{
+    if (!_btnCamera) {
+        CGFloat fBtnEnd_X = kAppWidth/2+kBtnRecord_W/2;
+        CGFloat fBtn_space = (kAppWidth-fBtnEnd_X-kBtnRecord_W*2)/3;
+        CGFloat f_X = fBtnEnd_X + fBtn_space + kBtnRecord_W + fBtn_space;
+        CGRect rect = CGRectMake(f_X, (kViewRecord_H-kBtnRecord_H)/2, kBtnRecord_W, kBtnRecord_H);
+        _btnCamera = [[UIButton alloc]initWithFrame:rect];
+        [_btnCamera setImage:[UIImage imageNamed:@"KSSwitchCamera"] forState:UIControlStateNormal];
+        [_btnCamera addTarget:self action:@selector(btnCameraSwitchClicked:) forControlEvents:UIControlEventTouchUpInside];
+    }
+    return _btnCamera;
 }
 
 - (UIView *)viewFinish

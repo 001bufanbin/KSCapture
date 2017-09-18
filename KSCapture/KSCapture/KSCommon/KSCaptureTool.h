@@ -43,4 +43,28 @@
  */
 + (BOOL)deleteVideo;
 
+
+/**
+ 麦克风权限
+
+ @return 是否具有权限
+ */
++ (BOOL)isAllowAccessMicrophone;
+
+/**
+ 相机权限
+
+ @return 是否具有权限
+ */
++ (BOOL)isAllowAccessCamera;
+
+
+/**
+ 计算偏移量之后的sampleBuffer
+
+ @param sampleBuffer sampleBuffer
+ @param timeOffset 偏移量
+ @return 处理之后的sampleBuffer
+ */
++ (CMSampleBufferRef)createOffsetSampleBufferWithSampleBuffer:(CMSampleBufferRef)sampleBuffer withTimeOffset:(CMTime)timeOffset;
 @end

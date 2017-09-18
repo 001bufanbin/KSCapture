@@ -29,8 +29,6 @@ typedef NS_ENUM(NSInteger ,KSCaptureWriterStatus)
 @property (nonatomic ,strong)NSDictionary *dicVideoSetting;
 @property (nonatomic ,strong)NSMutableDictionary *dicAudioSetting;
 
-//开始写入时间戳
-@property (nonatomic ,assign)CMTime startTimeStamp;
 //当前写入时长
 @property (nonatomic ,assign)CGFloat fDuration;
 
@@ -39,8 +37,7 @@ typedef NS_ENUM(NSInteger ,KSCaptureWriterStatus)
 
 //对象内部使用的状态
 @property (nonatomic ,assign)KSCaptureWriterStatus status;
-//视频写入方向
-@property (nonatomic ,assign)AVCaptureVideoOrientation captureOrientation;
+
 @end
 
 @implementation KSVideoWriter
@@ -57,6 +54,8 @@ typedef NS_ENUM(NSInteger ,KSCaptureWriterStatus)
         self.fDuration = 0.0;
         self.videoPath = videoPath;
         self.status = KSCaptureWriterUnknown;
+        _audioTimestamp = kCMTimeInvalid;
+        _videoTimestamp = kCMTimeInvalid;
 
         NSURL *writerUrl = [[NSURL alloc] initFileURLWithPath:videoPath];
         NSError *error;
@@ -142,8 +141,8 @@ typedef NS_ENUM(NSInteger ,KSCaptureWriterStatus)
         //只有当前buffer是视频的时候开始写入，防止视频一开始黑屏
         if (mediaType == AVMediaTypeVideo) {
             if ([self.assetWriter startWriting]) {
-                self.startTimeStamp = CMSampleBufferGetPresentationTimeStamp(sampleBuffer);
-                [self.assetWriter startSessionAtSourceTime:self.startTimeStamp];
+                CMTime startTime = CMSampleBufferGetPresentationTimeStamp(sampleBuffer);
+                [self.assetWriter startSessionAtSourceTime:startTime];
                 self.status = KSCaptureWriterWriting;
             }
         }
@@ -166,6 +165,19 @@ typedef NS_ENUM(NSInteger ,KSCaptureWriterStatus)
         return;
     }
 
+    if (self.assetWriter.status == AVAssetWriterStatusFailed) {
+        NSLog(@"writer Failed == (%@)", self.assetWriter.error);
+        return;
+    }
+    if (self.assetWriter.status == AVAssetWriterStatusCancelled) {
+        NSLog(@"writer cancelled");
+        return;
+    }
+    if (self.assetWriter.status == AVAssetWriterStatusCompleted) {
+        NSLog(@"writer completed");
+        return;
+    }
+
     //防止写入过程中当前buffer被释放
     CFRetain(sampleBuffer);
 
@@ -175,13 +187,25 @@ typedef NS_ENUM(NSInteger ,KSCaptureWriterStatus)
 
             @autoreleasepool {
 
+                //记录最后写入时间
+                CMTime timestamp = CMSampleBufferGetPresentationTimeStamp(sampleBuffer);
+                CMTime duration = CMSampleBufferGetDuration(sampleBuffer);
+                if (duration.value > 0) {
+                    timestamp = CMTimeAdd(timestamp, duration);
+                }
+
+                //buffer拼接写入
                 if (mediaType == AVMediaTypeVideo) {
                     if (self.assetVideoWriter.readyForMoreMediaData) {
-                        [self.assetVideoWriter appendSampleBuffer:sampleBuffer];
+                        if ([self.assetVideoWriter appendSampleBuffer:sampleBuffer]) {
+                            _videoTimestamp = timestamp;
+                        }
                     }
                 } else if (mediaType == AVMediaTypeAudio) {
                     if (self.assetAudioWriter && self.assetAudioWriter.readyForMoreMediaData) {
-                        [self.assetAudioWriter appendSampleBuffer:sampleBuffer];
+                        if ([self.assetAudioWriter appendSampleBuffer:sampleBuffer]) {
+                            _audioTimestamp = timestamp;
+                        }
                     }
                 }
 
@@ -203,16 +227,16 @@ typedef NS_ENUM(NSInteger ,KSCaptureWriterStatus)
 {
     static CGFloat fProgress = 0.0;
 
-    //CMTime cmBufferDuration = CMSampleBufferGetOutputDuration(sampleBuffer);
-    //当前时间戳
-    CMTime currentTimeStamp = CMSampleBufferGetPresentationTimeStamp(sampleBuffer);
+    CMTime cmBufferDuration = CMSampleBufferGetOutputDuration(sampleBuffer);
     //是否为无效的数字
-    if (CMTIME_IS_INVALID(currentTimeStamp)) {
+    if (isnan(CMTimeGetSeconds(cmBufferDuration))) {
         return fProgress;
     }
 
-    //拍摄时长时长
-    self.fDuration = CMTimeGetSeconds(CMTimeSubtract(currentTimeStamp, self.startTimeStamp));
+    //当前buff时长
+    CGFloat fBufferDuration = CMTimeGetSeconds(cmBufferDuration);
+    //计算总拍摄时长
+    self.fDuration += fBufferDuration;
     //计算拍摄进度
     fProgress = self.fDuration/RECORD_MAX_TIME;
 
@@ -280,57 +304,18 @@ typedef NS_ENUM(NSInteger ,KSCaptureWriterStatus)
 
 
 #pragma mark - get & set
-- (void)setDeviceOrientation:(UIDeviceOrientation)deviceOrientation
-{
-    _deviceOrientation = deviceOrientation;
-    switch (deviceOrientation) {
-        case UIDeviceOrientationLandscapeLeft:
-            self.captureOrientation = AVCaptureVideoOrientationLandscapeRight;
-            break;
-        case UIDeviceOrientationLandscapeRight:
-            self.captureOrientation = AVCaptureVideoOrientationLandscapeLeft;
-            break;
-        case UIDeviceOrientationPortrait:
-            self.captureOrientation = AVCaptureVideoOrientationPortrait;
-            break;
-        case UIDeviceOrientationPortraitUpsideDown:
-            self.captureOrientation = AVCaptureVideoOrientationPortraitUpsideDown;
-            break;
-        default:
-            break;
-    }
-}
-
 - (AVAssetWriterInput *)assetVideoWriter
 {
-    //有相机权限才初始化
     if (!_assetVideoWriter) {
         _assetVideoWriter = [AVAssetWriterInput assetWriterInputWithMediaType:AVMediaTypeVideo outputSettings:self.dicVideoSetting];
         _assetVideoWriter.expectsMediaDataInRealTime = YES;
         _assetVideoWriter.transform = CGAffineTransformIdentity;
-        //        switch (self.captureOrientation) {
-        //            case AVCaptureVideoOrientationLandscapeRight:
-        //                break;
-        //            case AVCaptureVideoOrientationPortrait:
-        //                _assetVideoWriter.transform = CGAffineTransformMakeRotation(M_PI/2);
-        //                break;
-        //            case AVCaptureVideoOrientationLandscapeLeft:
-        //                _assetVideoWriter.transform = CGAffineTransformMakeRotation(M_PI/2*2);
-        //                break;
-        //            case AVCaptureVideoOrientationPortraitUpsideDown:
-        //                _assetVideoWriter.transform = CGAffineTransformMakeRotation(M_PI/2*3);
-        //                break;
-        //            default:
-        //                _assetVideoWriter.transform = CGAffineTransformMakeRotation(M_PI/2);
-        //                break;
-        //        }
     }
     return _assetVideoWriter;
 }
 
 - (AVAssetWriterInput *)assetAudioWriter
 {
-    //有麦克风权限才初始化
     if (!_assetAudioWriter) {
         _assetAudioWriter = [AVAssetWriterInput assetWriterInputWithMediaType:AVMediaTypeAudio outputSettings:self.dicAudioSetting];
         _assetAudioWriter.expectsMediaDataInRealTime = YES;

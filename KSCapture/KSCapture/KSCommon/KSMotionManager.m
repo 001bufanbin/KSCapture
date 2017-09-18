@@ -8,6 +8,7 @@
 
 #import "KSMotionManager.h"
 
+////每秒播放（录制）30帧-速度，总共播放（录制）6帧-路程，所以总共用时（6/30）秒-时间
 static NSTimeInterval kUpdateIntervalDefault = 6.0/30.0;
 
 @interface KSMotionManager ()
