@@ -8,6 +8,7 @@
 
 #import "KSVideoWriter.h"
 
+#define kKSWriterQueueKey "KSWriterQueueKey"
 typedef NS_ENUM(NSInteger ,KSCaptureWriterStatus)
 {
     KSCaptureWriterUnknown = AVAssetWriterStatusUnknown,
@@ -27,7 +28,7 @@ typedef NS_ENUM(NSInteger ,KSCaptureWriterStatus)
 
 //音视频写入配置
 @property (nonatomic ,strong)NSDictionary *dicVideoSetting;
-@property (nonatomic ,strong)NSMutableDictionary *dicAudioSetting;
+@property (nonatomic ,strong)NSDictionary *dicAudioSetting;
 
 //当前写入时长
 @property (nonatomic ,assign)CGFloat fDuration;
@@ -37,6 +38,8 @@ typedef NS_ENUM(NSInteger ,KSCaptureWriterStatus)
 
 //对象内部使用的状态
 @property (nonatomic ,assign)KSCaptureWriterStatus status;
+//视频写入方向
+@property (nonatomic ,assign)AVCaptureVideoOrientation captureOrientation;
 
 @end
 
@@ -90,6 +93,17 @@ typedef NS_ENUM(NSInteger ,KSCaptureWriterStatus)
         height += 1;
     }
 
+    /**
+     视频相关配置：
+     AVVideoAllowFrameReorderingKey:是否启用帧重新排序，关闭可提高性能，默认YES（为了在保持图像质量的同时实现最佳压缩，一些视频编码器可以对帧重新排序）
+     AverageBitRate：每秒比特率bps（Bit Per Second），决定视频每秒大小（视频体积=视频码率*时间）
+     AVVideoExpectedSourceFrameRateKey：每秒帧率FPS(Frames Per Second)
+     AVVideoMaxKeyFrameIntervalKey:关键帧之间的最大间隔帧数（每隔几个帧设置为关键帧），越大压缩率越高
+     AVVideoMaxKeyFrameIntervalDurationKey：每个关键帧之间的最大时间间隔
+     上面这俩属性限制都会执行以先设置者为准，每X帧一个关键帧或者每Y秒一个关键帧
+     AVVideoProfileLevelKey:Baseline-基本画质。支持I/P 帧，只支持无交错（Progressive）和CAVLC；Main-主流画质。提供I/P/B 帧，支持无交错（Progressive）和交错（Interlaced），也支持CAVLC 和CABAC 的支持；High-高级画质。在main Profile 的基础上增加了8×8内部预测、自定义量化、 无损视频编码和更多的YUV 格式；
+     */
+
     //写入视频大小
     CGFloat numPixels = width * height;
     //每像素比特
@@ -105,16 +119,33 @@ typedef NS_ENUM(NSInteger ,KSCaptureWriterStatus)
     //视频属性
     self.dicVideoSetting = @{ AVVideoCodecKey : AVVideoCodecH264,
                               AVVideoScalingModeKey : AVVideoScalingModeResizeAspect,
-                              AVVideoWidthKey : @(width),
-                              AVVideoHeightKey : @(height),
+                              AVVideoWidthKey : @(height),
+                              AVVideoHeightKey : @(width),
                               AVVideoCompressionPropertiesKey : compressionProperties };
 
 }
 
 - (void)setAudioWriter:(AVCaptureAudioDataOutput *)audioOutPut
 {
-    NSDictionary *dicNormal = [audioOutPut recommendedAudioSettingsForAssetWriterWithOutputFileType:AVFileTypeMPEG4];
-    self.dicAudioSetting = [[NSMutableDictionary alloc]initWithDictionary:dicNormal];
+    //NSDictionary *dicNormal = [audioOutPut recommendedAudioSettingsForAssetWriterWithOutputFileType:AVFileTypeMPEG4];
+    //self.dicAudioSetting = [[NSMutableDictionary alloc]initWithDictionary:dicNormal];
+
+    //AVAudioSettings.h
+    /*
+     * AVFormatIDKey: 音频编码方式
+     * AVSampleRateKey: 音频采样率HZ
+     * AVNumberOfChannelsKey: 音轨数（单声道，双声道等）
+     * AVEncoderBitRateKey: 编码比特率
+     * AVEncoderBitRatePerChannelKey: 每个音轨的编码比特率，和AVEncoderBitRateKey只设置一个即可
+     * AVEncoderBitRateStrategyKey: 编码策略
+     * kAudioChannelLayoutTag: 声道设置（单声道、立体声、左环绕、右环绕等）
+     */
+
+    //音频设置
+    self.dicAudioSetting = @{AVFormatIDKey: @(kAudioFormatMPEG4AAC),
+                             AVSampleRateKey:@(44100.0),
+                             AVNumberOfChannelsKey:@(1),
+                             AVEncoderBitRateKey:@(64000)};
 }
 
 - (void)addInputs
@@ -295,21 +326,72 @@ typedef NS_ENUM(NSInteger ,KSCaptureWriterStatus)
     } else {
         self.status = KSCaptureWriterCancelled;
         //cancelWriting not called concurrently with -[AVAssetWriterInput appendSampleBuffer:]
-        dispatch_async(self.writerQueue, ^{
+        [self dispatchSyncOnWriterQueue:^{
             [self.assetWriter cancelWriting];
-        });
+        }];
         return YES;
     }
 }
 
+// MARK: - 安全的同步执行writerQueue,防止deadLock
+- (void)dispatchSyncOnWriterQueue:(void(^)())block
+{
+    if ([self isOnWriterQueue]) {
+        block();
+    } else {
+        dispatch_sync(self.writerQueue, block);
+    }
+}
+
+- (BOOL)isOnWriterQueue {
+    return dispatch_get_specific(kKSWriterQueueKey) != nil;
+}
 
 #pragma mark - get & set
+- (void)setDeviceOrientation:(UIDeviceOrientation)deviceOrientation
+{
+    _deviceOrientation = deviceOrientation;
+    switch (deviceOrientation) {
+        case UIDeviceOrientationLandscapeLeft:
+            self.captureOrientation = AVCaptureVideoOrientationLandscapeRight;
+            break;
+        case UIDeviceOrientationLandscapeRight:
+            self.captureOrientation = AVCaptureVideoOrientationLandscapeLeft;
+            break;
+        case UIDeviceOrientationPortrait:
+            self.captureOrientation = AVCaptureVideoOrientationPortrait;
+            break;
+        case UIDeviceOrientationPortraitUpsideDown:
+            self.captureOrientation = AVCaptureVideoOrientationPortraitUpsideDown;
+            break;
+        default:
+            break;
+    }
+}
+
 - (AVAssetWriterInput *)assetVideoWriter
 {
     if (!_assetVideoWriter) {
         _assetVideoWriter = [AVAssetWriterInput assetWriterInputWithMediaType:AVMediaTypeVideo outputSettings:self.dicVideoSetting];
         _assetVideoWriter.expectsMediaDataInRealTime = YES;
-        _assetVideoWriter.transform = CGAffineTransformIdentity;
+
+        switch (self.captureOrientation) {
+            case AVCaptureVideoOrientationLandscapeRight:
+                break;
+            case AVCaptureVideoOrientationPortrait:
+                _assetVideoWriter.transform = CGAffineTransformMakeRotation(M_PI/2);
+                break;
+            case AVCaptureVideoOrientationLandscapeLeft:
+                _assetVideoWriter.transform = CGAffineTransformMakeRotation(M_PI/2*2);
+                break;
+            case AVCaptureVideoOrientationPortraitUpsideDown:
+                _assetVideoWriter.transform = CGAffineTransformMakeRotation(M_PI/2*3);
+                break;
+            default:
+                _assetVideoWriter.transform = CGAffineTransformMakeRotation(M_PI/2);
+                break;
+        }
+
     }
     return _assetVideoWriter;
 }
@@ -327,6 +409,8 @@ typedef NS_ENUM(NSInteger ,KSCaptureWriterStatus)
 {
     if (!_writerQueue) {
         _writerQueue = dispatch_queue_create("com.KS.CaptureVideo.VideoWriterQueue", DISPATCH_QUEUE_SERIAL);
+        //给队列设置标识key
+        dispatch_queue_set_specific(_writerQueue, kKSWriterQueueKey, "true", nil);
     }
     return _writerQueue;
 }

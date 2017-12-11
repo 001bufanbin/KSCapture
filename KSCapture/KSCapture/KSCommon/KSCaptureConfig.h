@@ -25,6 +25,9 @@
 #define kTextFont            @"Helvetica"
 #define kTextBoldFont        @"Helvetica-Bold"
 
+#define kSystemVersion     ([[[UIDevice currentDevice] systemVersion] floatValue])
+#define iOS9ge             ((kSystemVersion >= 9.0) ? YES : NO)
+
 typedef NS_ENUM(NSInteger ,KSRecordState)
 {
     KSRecordStatePrepare = 0,

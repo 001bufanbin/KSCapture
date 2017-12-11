@@ -11,9 +11,15 @@
 #import "KSCaptureTool.h"
 #import "KSMotionManager.h"
 
-//切换闪光灯block回调
+
+//切换手电筒block回调
 typedef void (^SwitchTorchSuccessBlock)(AVCaptureTorchMode currentTorchMode);
 typedef void (^SwitchTorchFailedBlock)(NSError *error, AVCaptureTorchMode currentTorchMode);
+
+//切换闪光灯block回调
+typedef void (^SwitchFlashSuccessBlock)(AVCaptureFlashMode currentFlashMode);
+typedef void (^SwitchFlashFailedBlock)(NSError *error, AVCaptureFlashMode currentFlashMode);
+
 //切换摄像头block回调
 typedef void (^SwitchCameraSuccessBlock)(AVCaptureDevicePosition currentPosition);
 typedef void (^SwitchCameraFailedBlock)(NSError *error, AVCaptureDevicePosition currentPosition);
@@ -30,9 +36,14 @@ typedef NS_ENUM(NSInteger ,KSCaptureType)
 @property (nonatomic ,strong)AVCaptureSession *session;
 //设备输入源（前置或者后置摄像头）
 @property (nonatomic ,strong)AVCaptureDeviceInput *videoInput;
+@property (nonatomic ,strong)AVCaptureDeviceInput *videoBackInput;
+@property (nonatomic ,strong)AVCaptureDeviceInput *videoFrontInput;
 @property (nonatomic ,strong)AVCaptureConnection  *videoConnection;//子类按照outPut重写get方法
 //视频预览
 @property (nonatomic ,strong)AVCaptureVideoPreviewLayer *previewLayer;
+
+//设备最高可支持分辨率
+- (NSString *)sessionPresetForDevice:(AVCaptureDevice *)device;
 
 //设置默认方向
 - (void)setVideoConnectionOrientationDefault:(KSCaptureType)type;
@@ -73,6 +84,11 @@ typedef NS_ENUM(NSInteger ,KSCaptureType)
  切换手电筒模式(开-关)
  */
 - (void)switchTorchModelSuccess:(SwitchTorchSuccessBlock)success failed:(SwitchTorchFailedBlock)failed;
+
+/**
+ 切换闪光灯模式（开-关）
+ */
+- (void)switchFlashModelSuccess:(SwitchFlashSuccessBlock)success failed:(SwitchFlashFailedBlock)failed;
 
 /**
  切换摄像头

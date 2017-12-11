@@ -76,7 +76,6 @@
         case KSRecordStatePrepare:
             break;
         case KSRecordStateRecording:
-            [self.recordManager stopRecord];
             [self.recordManager giveUpRecord];
             break;
         case KSRecordStateFinish:

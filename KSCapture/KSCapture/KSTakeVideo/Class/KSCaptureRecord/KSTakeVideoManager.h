@@ -29,7 +29,7 @@
 
 @interface KSTakeVideoManager : KSAVFoundationManager
 
-@property (nonatomic ,assign)id <KSTakeVideoManagerDelegate> delegate;
+@property (nonatomic ,weak)id <KSTakeVideoManagerDelegate> delegate;
 @property (nonatomic ,assign ,readonly)KSRecordState recordState;
 
 /**

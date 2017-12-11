@@ -25,7 +25,7 @@
 
 @interface KSTakeVideoOperateView : UIView
 
-@property (nonatomic ,assign)id <KSTakeVideoOperateViewDelegate> delegate;
+@property (nonatomic ,weak)id <KSTakeVideoOperateViewDelegate> delegate;
 
 - (void)setViewCamera:(KSRecordState)state;
 - (void)setBtnTorchForMode:(AVCaptureTorchMode)mode;

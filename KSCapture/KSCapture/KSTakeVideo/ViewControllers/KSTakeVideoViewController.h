@@ -17,6 +17,6 @@
 
 @interface KSTakeVideoViewController : UIViewController
 
-@property (nonatomic ,assign)id <KSTakeVideoDelegate> delegate;
+@property (nonatomic ,weak)id <KSTakeVideoDelegate> delegate;
 
 @end

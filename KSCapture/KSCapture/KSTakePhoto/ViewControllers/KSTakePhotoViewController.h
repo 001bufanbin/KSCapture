@@ -16,6 +16,6 @@
 
 @interface KSTakePhotoViewController : UIViewController
 
-@property (nonatomic ,strong)id<KSTakePhotoDelegate> delegate;         //拍摄完成代理
+@property (nonatomic ,weak)id<KSTakePhotoDelegate> delegate;         //拍摄完成代理
 
 @end

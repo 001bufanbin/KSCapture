@@ -13,8 +13,6 @@
     BOOL _adjustingFocus;
     BOOL _needsSwitchBackToContinuousFocus;
 }
-@property (nonatomic ,strong)AVCaptureDeviceInput *videoBackInput;
-@property (nonatomic ,strong)AVCaptureDeviceInput *videoFrontInput;
 @end
 
 @implementation KSAVFoundationManager
@@ -44,6 +42,7 @@ static char* SCRecorderExposureContext = "ExposureContext";
     if (self) {
 
         [self sessionPresetForPosition:AVCaptureDevicePositionBack];
+
         //父类统一处理输入-后摄像头
         self.videoInput = self.videoBackInput;
         if ([self.session canAddInput:self.videoInput]) {
@@ -59,18 +58,6 @@ static char* SCRecorderExposureContext = "ExposureContext";
         [[NSNotificationCenter defaultCenter] addObserver:self
                                                  selector:@selector(subjectAreaDidChange)
                                                      name:AVCaptureDeviceSubjectAreaDidChangeNotification
-                                                   object:nil];
-
-        //监听进入后台
-        [[NSNotificationCenter defaultCenter] addObserver:self
-                                                 selector:@selector(appWillResignActive)
-                                                     name:UIApplicationWillResignActiveNotification
-                                                   object:nil];
-
-        //监听进入前台
-        [[NSNotificationCenter defaultCenter] addObserver:self
-                                                 selector:@selector(appDidBecomeActive)
-                                                     name:UIApplicationDidBecomeActiveNotification
                                                    object:nil];
     }
     return self;
@@ -94,6 +81,30 @@ static char* SCRecorderExposureContext = "ExposureContext";
 {
     if ([self.session canSetSessionPreset:AVCaptureSessionPresetHigh]) {
         self.session.sessionPreset = AVCaptureSessionPresetHigh;
+    }
+}
+
+/**
+ 返回设备支持的分辨率
+ */
+- (NSString *)sessionPresetForDevice:(AVCaptureDevice *)device
+{
+    if (iOS9ge && [device supportsAVCaptureSessionPreset:AVCaptureSessionPreset3840x2160]) {
+        return AVCaptureSessionPreset3840x2160;
+    } else if([device supportsAVCaptureSessionPreset:AVCaptureSessionPreset1920x1080]){
+        return AVCaptureSessionPreset1920x1080;
+    } else if ([device supportsAVCaptureSessionPreset:AVCaptureSessionPreset1280x720]){
+        return AVCaptureSessionPreset1280x720;
+    } else if ([device supportsAVCaptureSessionPreset:AVCaptureSessionPreset640x480]){
+        return AVCaptureSessionPreset640x480;
+    } else if ([device supportsAVCaptureSessionPreset:AVCaptureSessionPreset352x288]){
+        return AVCaptureSessionPreset352x288;
+    } else if ([device supportsAVCaptureSessionPreset:AVCaptureSessionPresetHigh]){
+        return AVCaptureSessionPresetHigh;
+    } else if ([device supportsAVCaptureSessionPreset:AVCaptureSessionPresetMedium]){
+        return AVCaptureSessionPresetMedium;
+    } else{
+        return AVCaptureSessionPresetLow;
     }
 }
 
@@ -154,12 +165,62 @@ static char* SCRecorderExposureContext = "ExposureContext";
     }
 }
 
+- (void)switchFlashModelSuccess:(SwitchFlashSuccessBlock)success failed:(SwitchFlashFailedBlock)failed
+{
+    //没有闪光灯
+    if (![self.videoInput.device hasFlash]) {
+        if (failed) {
+            failed(nil,self.videoInput.device.flashMode);
+        }
+        return;
+    }
+    //闪光灯不可用-例如闪光灯过热
+    if (![self.videoInput.device isFlashAvailable]) {
+        if (failed) {
+            failed(nil,self.videoInput.device.flashMode);
+        }
+        return;
+    }
+
+    NSError *error;
+    if (self.videoInput.device.flashMode == AVCaptureFlashModeOff) {
+        if ([self.videoInput.device isFlashModeSupported:AVCaptureFlashModeOn]) {
+            [self.videoInput.device lockForConfiguration:&error];
+            self.videoInput.device.flashMode = AVCaptureFlashModeOn;
+            [self.videoInput.device unlockForConfiguration];
+        }
+    } else if (self.videoInput.device.flashMode == AVCaptureFlashModeOn) {
+        if ([self.videoInput.device isFlashModeSupported:AVCaptureFlashModeOff]) {
+            [self.videoInput.device lockForConfiguration:&error];
+            self.videoInput.device.flashMode = AVCaptureFlashModeOff;
+            [self.videoInput.device unlockForConfiguration];
+        }
+    }
+
+    if (error) {
+        if (failed) {
+            failed(error,self.videoInput.device.flashMode);
+        }
+    } else {
+        if (success) {
+            success(self.videoInput.device.flashMode);
+        }
+    }
+}
+
 - (void)switchCameraSuccess:(SwitchCameraSuccessBlock)success failed:(SwitchCameraFailedBlock)failed
 {
     BOOL switchSuccess = NO;
     AVCaptureDeviceInput *newInput;
     AVCaptureDeviceInput *oldInput;
     oldInput = self.videoInput;
+
+    [self.session beginConfiguration];
+
+    if (oldInput) {
+        [self.session removeInput:oldInput];
+        [self removeVideoObservers:oldInput.device];
+    }
 
     AVCaptureDevicePosition position = self.videoInput.device.position;
     if (position == AVCaptureDevicePositionBack) {
@@ -170,12 +231,6 @@ static char* SCRecorderExposureContext = "ExposureContext";
         [self sessionPresetForPosition:AVCaptureDevicePositionBack];
     }
 
-    [self.session beginConfiguration];
-
-    if (oldInput) {
-        [self.session removeInput:oldInput];
-        [self removeVideoObservers:oldInput.device];
-    }
     if ([self.session canAddInput:newInput]) {
         [self.session addInput:newInput];
         [self addVideoObservers:newInput.device];
@@ -482,16 +537,7 @@ static char* SCRecorderExposureContext = "ExposureContext";
         }
     }
 }
-#pragma mark - APP ActiveNotification
-//进入后台+进入前台监听(子类按需求重写)
-- (void)appWillResignActive
-{
-    [self stopSessionRuning];
-}
-- (void)appDidBecomeActive
-{
-    [self startSessionRuning];
-}
+
 #pragma mark - get & set
 #pragma mark Session
 - (AVCaptureSession *)session
@@ -509,8 +555,16 @@ static char* SCRecorderExposureContext = "ExposureContext";
         AVCaptureDevice *videoDevice = [self getCameraDeviceWithPosition:AVCaptureDevicePositionBack];
         NSError *error;
         _videoBackInput = [[AVCaptureDeviceInput alloc]initWithDevice:videoDevice error:&error];
+
         if (error) {
             NSLog(@"videoBackInput init error == %@",error);
+        } else {
+            //设置默认初始化闪光灯状态-关闭
+            if ([_videoBackInput.device hasFlash] && [_videoBackInput.device isFlashAvailable]) {
+                [_videoBackInput.device lockForConfiguration:nil];
+                _videoBackInput.device.flashMode = AVCaptureFlashModeOff;
+                [_videoBackInput.device unlockForConfiguration];
+            }
         }
     }
     return _videoBackInput;

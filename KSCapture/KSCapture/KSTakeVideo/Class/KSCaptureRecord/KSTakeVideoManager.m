@@ -77,11 +77,23 @@
             [self.session addOutput:self.videoOutPut];
         }
         //设置输出初始方向
-        [self setVideoConnectionOrientationDefault:KSCaptureVideo];
+        //[self setVideoConnectionOrientationDefault:KSCaptureVideo];
         //输出-音频
         if (self.audioOutPut && [self.session canAddOutput:self.audioOutPut]) {
             [self.session addOutput:self.audioOutPut];
         }
+
+        //监听进入后台
+        [[NSNotificationCenter defaultCenter] addObserver:self
+                                                 selector:@selector(appWillResignActive)
+                                                     name:UIApplicationWillResignActiveNotification
+                                                   object:nil];
+
+        //监听进入前台
+        [[NSNotificationCenter defaultCenter] addObserver:self
+                                                 selector:@selector(appDidBecomeActive)
+                                                     name:UIApplicationDidBecomeActiveNotification
+                                                   object:nil];
 
     }
     return self;
@@ -169,7 +181,7 @@
 - (void)appWillResignActive
 {
     if (_recordState == KSRecordStatePrepare) {
-        [self stopSessionRuning];
+
     } else if (_recordState == KSRecordStateRecording) {
         [self stopRecord];
     } else if (_recordState == KSRecordStateFinish) {
@@ -180,7 +192,7 @@
 - (void)appDidBecomeActive
 {
     if (_recordState == KSRecordStatePrepare) {
-        [self startSessionRuning];
+
     } else if (_recordState == KSRecordStateRecording) {
 
     } else if (_recordState == KSRecordStateFinish) {
@@ -353,13 +365,14 @@
 - (void)initAssetWriter
 {
     //记录开始录制时候设备方向
-    self.deviceOrientation = [KSMotionManager shareInstance].orientation;
+    //self.deviceOrientation = [KSMotionManager shareInstance].orientation;
     //设置视频方向
-    [self setOrientationForConnection];
+    //[self setOrientationForConnection];
 
     KSVideoWriter *writer = [[KSVideoWriter alloc]initWithVideoPath:self.videoPath];
     [writer setVideoWriter:self.videoOutPut];
     [writer setAudioWriter:self.audioOutPut];
+    writer.deviceOrientation = [KSMotionManager shareInstance].orientation;
     [writer addInputs];
     writer.delegate = self;
     self.writer = writer;

@@ -23,7 +23,7 @@
 
 @interface KSMotionManager : NSObject
 
-@property (nonatomic ,strong)id <KSMotionManagerDelegate>delegate;
+@property (nonatomic ,weak)id <KSMotionManagerDelegate>delegate;
 
 //设备运动检测频率
 @property(assign, nonatomic) NSTimeInterval deviceMotionUpdateInterval;

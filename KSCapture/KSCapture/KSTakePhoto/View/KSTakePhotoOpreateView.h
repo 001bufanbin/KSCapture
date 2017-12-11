@@ -24,7 +24,7 @@ FOUNDATION_EXPORT CGFloat const kViewUnder_H;//底部视图高度
 
 @interface KSTakePhotoOpreateView : UIView
 
-@property (nonatomic ,assign)id <KSTakePhotoOperateViewDelegate> delegate;
+@property (nonatomic ,weak)id <KSTakePhotoOperateViewDelegate> delegate;
 
 
 /**
