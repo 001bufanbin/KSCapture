@@ -31,16 +31,19 @@
 @interface KSVideoWriter : NSObject
 
 @property (nonatomic ,weak)id <KSVideoWriterDelegate>delegate;
-@property (nonatomic ,assign)UIDeviceOrientation deviceOrientation;//写入时设备方向
+
 //最后写入时间-用于计算暂停偏移时间
 @property (nonatomic, readonly) CMTime audioTimestamp;
 @property (nonatomic, readonly) CMTime videoTimestamp;
 
-//初始化方法
-- (instancetype)initWithVideoPath:(NSString *)videoPath;
-- (void)setVideoWriter:(AVCaptureVideoDataOutput *)videoOutPut;
-- (void)setAudioWriter:(AVCaptureAudioDataOutput *)audioOutPut;
-- (void)addInputs;
+/**
+ 初始化方法
+
+ @param  videoPath 视频写入文件路径
+ @param  deviceOrientation 当前设备方向
+ @retutn 视频写入对象
+ */
+- (instancetype)initWithVideoPath:(NSString *)videoPath currentDeviceOrientation:(UIDeviceOrientation)deviceOrientation;
 
 //开始写入
 - (void)startWritingSampleBuffer:(CMSampleBufferRef)sampleBuffer mediaType:(NSString *)mediaType;

@@ -84,30 +84,6 @@ static char* SCRecorderExposureContext = "ExposureContext";
     }
 }
 
-/**
- 返回设备支持的分辨率
- */
-- (NSString *)sessionPresetForDevice:(AVCaptureDevice *)device
-{
-    if (iOS9ge && [device supportsAVCaptureSessionPreset:AVCaptureSessionPreset3840x2160]) {
-        return AVCaptureSessionPreset3840x2160;
-    } else if([device supportsAVCaptureSessionPreset:AVCaptureSessionPreset1920x1080]){
-        return AVCaptureSessionPreset1920x1080;
-    } else if ([device supportsAVCaptureSessionPreset:AVCaptureSessionPreset1280x720]){
-        return AVCaptureSessionPreset1280x720;
-    } else if ([device supportsAVCaptureSessionPreset:AVCaptureSessionPreset640x480]){
-        return AVCaptureSessionPreset640x480;
-    } else if ([device supportsAVCaptureSessionPreset:AVCaptureSessionPreset352x288]){
-        return AVCaptureSessionPreset352x288;
-    } else if ([device supportsAVCaptureSessionPreset:AVCaptureSessionPresetHigh]){
-        return AVCaptureSessionPresetHigh;
-    } else if ([device supportsAVCaptureSessionPreset:AVCaptureSessionPresetMedium]){
-        return AVCaptureSessionPresetMedium;
-    } else{
-        return AVCaptureSessionPresetLow;
-    }
-}
-
 - (void)startSessionRuning
 {
     if ([self.session isRunning]) {
@@ -238,8 +214,9 @@ static char* SCRecorderExposureContext = "ExposureContext";
     }
     //重新设置输入设备
     self.videoInput = newInput;
-    //设置方向和镜像
+    //设置方向
     [self setOrientationForConnection];
+    //设置镜像（打开之后所见即所得，文字是翻转的）
     [self setMirroredForDeviceInput];
 
     [self.session commitConfiguration];

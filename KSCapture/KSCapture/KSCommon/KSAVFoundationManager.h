@@ -42,9 +42,6 @@ typedef NS_ENUM(NSInteger ,KSCaptureType)
 //视频预览
 @property (nonatomic ,strong)AVCaptureVideoPreviewLayer *previewLayer;
 
-//设备最高可支持分辨率
-- (NSString *)sessionPresetForDevice:(AVCaptureDevice *)device;
-
 //设置默认方向
 - (void)setVideoConnectionOrientationDefault:(KSCaptureType)type;
 //拍摄时设备方向

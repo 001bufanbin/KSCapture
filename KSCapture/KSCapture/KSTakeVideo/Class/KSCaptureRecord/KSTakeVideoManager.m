@@ -34,6 +34,7 @@
 
 - (void)dealloc
 {
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
     [self deallocSession];
 }
 
@@ -77,7 +78,7 @@
             [self.session addOutput:self.videoOutPut];
         }
         //设置输出初始方向
-        //[self setVideoConnectionOrientationDefault:KSCaptureVideo];
+        [self setVideoConnectionOrientationDefault:KSCaptureVideo];
         //输出-音频
         if (self.audioOutPut && [self.session canAddOutput:self.audioOutPut]) {
             [self.session addOutput:self.audioOutPut];
@@ -175,7 +176,7 @@
 }
 
 #pragma mark - ApplicationNotification
-//如果当前未开始录制-App进入后台，则停止session；进入前台之后开始session
+//如果当前未开始录制-App进入后台，啥也不用干，系统管理session的start和stop
 //如果当前开始录制-App进入后台，则停止录制；进入前台之后开始回调到代理对象的完成函数，开始播放
 //如果当前录制完成正在播放-啥也不用干
 - (void)appWillResignActive
@@ -364,16 +365,9 @@
 #pragma mark Writer
 - (void)initAssetWriter
 {
-    //记录开始录制时候设备方向
-    //self.deviceOrientation = [KSMotionManager shareInstance].orientation;
-    //设置视频方向
-    //[self setOrientationForConnection];
-
-    KSVideoWriter *writer = [[KSVideoWriter alloc]initWithVideoPath:self.videoPath];
-    [writer setVideoWriter:self.videoOutPut];
-    [writer setAudioWriter:self.audioOutPut];
-    writer.deviceOrientation = [KSMotionManager shareInstance].orientation;
-    [writer addInputs];
+    UIDeviceOrientation deviceOrientation = [KSMotionManager shareInstance].orientation;
+    KSVideoWriter *writer = [[KSVideoWriter alloc]initWithVideoPath:self.videoPath
+                                           currentDeviceOrientation:deviceOrientation];
     writer.delegate = self;
     self.writer = writer;
 }

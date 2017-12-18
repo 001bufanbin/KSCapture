@@ -21,12 +21,6 @@
 //是否具有暂停功能 0-否；1-是
 #define kCanPause              1
 
-//字体
-#define kTextFont            @"Helvetica"
-#define kTextBoldFont        @"Helvetica-Bold"
-
-#define kSystemVersion     ([[[UIDevice currentDevice] systemVersion] floatValue])
-#define iOS9ge             ((kSystemVersion >= 9.0) ? YES : NO)
 
 typedef NS_ENUM(NSInteger ,KSRecordState)
 {
@@ -38,11 +32,13 @@ typedef NS_ENUM(NSInteger ,KSRecordState)
     KSRecordStateFail,
 };
 
+//MARK: - FILEPATH
 CG_INLINE NSString *docPath()
 {
     return [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) objectAtIndex: 0];
 }
 
+//MARK: - COLOR
 CG_INLINE UIColor *RGBVCOLOR (long rgbValue)
 {
     return [UIColor colorWithRed:((float)((rgbValue & 0xFF0000) >> 16))/255.0
@@ -59,6 +55,12 @@ CG_INLINE UIColor *RGBVACOLOR (long rgbValue,CGFloat alpha)
                             blue:((float)(rgbValue & 0xFF))/255.0
                            alpha:alpha];
 }
+
+//MARK: - FONT
+#define kTextFont            @"Helvetica"
+#define kTextBoldFont        @"Helvetica-Bold"
+#define kTextFont            @"Helvetica"
+#define kTextBoldFont        @"Helvetica-Bold"
 
 CG_INLINE UIFont *KSFont (CGFloat fontSize)
 {

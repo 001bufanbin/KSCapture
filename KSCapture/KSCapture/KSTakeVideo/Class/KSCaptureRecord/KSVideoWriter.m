@@ -32,12 +32,12 @@ typedef NS_ENUM(NSInteger ,KSCaptureWriterStatus)
 
 //当前写入时长
 @property (nonatomic ,assign)CGFloat fDuration;
-
 //写入路径
 @property (nonatomic ,copy)NSString *videoPath;
-
 //对象内部使用的状态
 @property (nonatomic ,assign)KSCaptureWriterStatus status;
+//写入时设备方向
+@property (nonatomic ,assign)UIDeviceOrientation deviceOrientation;
 //视频写入方向
 @property (nonatomic ,assign)AVCaptureVideoOrientation captureOrientation;
 
@@ -50,7 +50,7 @@ typedef NS_ENUM(NSInteger ,KSCaptureWriterStatus)
 
 }
 
-- (instancetype)initWithVideoPath:(NSString *)videoPath
+- (instancetype)initWithVideoPath:(NSString *)videoPath currentDeviceOrientation:(UIDeviceOrientation)deviceOrientation;
 {
     self = [super init];
     if (self) {
@@ -63,89 +63,19 @@ typedef NS_ENUM(NSInteger ,KSCaptureWriterStatus)
         NSURL *writerUrl = [[NSURL alloc] initFileURLWithPath:videoPath];
         NSError *error;
         AVAssetWriter *assetWriter = [AVAssetWriter assetWriterWithURL:writerUrl fileType:AVFileTypeMPEG4 error:&error];
-        //设置为YES，将尾部视频信息放到视频头部，网络播放的时候一加载就可以播放
-        //https://stackoverflow.com/questions/12980047/what-does-shouldoptimizefornetworkuse-actually-do
         assetWriter.shouldOptimizeForNetworkUse = YES;
         self.assetWriter = assetWriter;
 
         if (error) {
             NSLog(@"assetwriter init error == %@",error);
         }
+
+        //设置方向
+        self.deviceOrientation = deviceOrientation;
+        //添加输入
+        [self addInputs];
     }
     return self;
-}
-
-- (void)setVideoWriter:(AVCaptureVideoDataOutput *)videoOutPut
-{
-    NSDictionary *dicNormal = [videoOutPut recommendedVideoSettingsForAssetWriterWithOutputFileType:AVFileTypeMPEG4];
-    self.dicVideoSetting = [[NSDictionary alloc]initWithDictionary:dicNormal];
-
-    //如果写入尺寸（宽或者高）不能被16整除，则解码的时候边缘会丢弃,导致一个像素的绿边
-    //https://discussions.apple.com/message/8525272#8525272
-    //https://stackoverflow.com/questions/29505631/crop-video-in-ios-see-weird-green-line-around-video
-    //如果不能被2整除，则宽或者高+1，解决黑边或者绿边的问题
-    NSInteger width = kAppWidth;
-    NSInteger height = kAppHeight;
-    if (width%2 != 0) {
-        width += 1;
-    }
-    if (height%2 != 0) {
-        height += 1;
-    }
-
-    /**
-     视频相关配置：
-     AVVideoAllowFrameReorderingKey:是否启用帧重新排序，关闭可提高性能，默认YES（为了在保持图像质量的同时实现最佳压缩，一些视频编码器可以对帧重新排序）
-     AverageBitRate：每秒比特率bps（Bit Per Second），决定视频每秒大小（视频体积=视频码率*时间）
-     AVVideoExpectedSourceFrameRateKey：每秒帧率FPS(Frames Per Second)
-     AVVideoMaxKeyFrameIntervalKey:关键帧之间的最大间隔帧数（每隔几个帧设置为关键帧），越大压缩率越高
-     AVVideoMaxKeyFrameIntervalDurationKey：每个关键帧之间的最大时间间隔
-     上面这俩属性限制都会执行以先设置者为准，每X帧一个关键帧或者每Y秒一个关键帧
-     AVVideoProfileLevelKey:Baseline-基本画质。支持I/P 帧，只支持无交错（Progressive）和CAVLC；Main-主流画质。提供I/P/B 帧，支持无交错（Progressive）和交错（Interlaced），也支持CAVLC 和CABAC 的支持；High-高级画质。在main Profile 的基础上增加了8×8内部预测、自定义量化、 无损视频编码和更多的YUV 格式；
-     */
-
-    //写入视频大小
-    CGFloat numPixels = width * height;
-    //每像素比特
-    CGFloat bitsPerPixel = 6.0;
-    CGFloat bitsPerSecond = numPixels * bitsPerPixel;
-
-    // 码率和帧率设置
-    NSDictionary *compressionProperties = @{ AVVideoAverageBitRateKey : @(bitsPerSecond),
-                                             AVVideoExpectedSourceFrameRateKey : @(30),
-                                             AVVideoMaxKeyFrameIntervalKey : @(30),
-                                             AVVideoProfileLevelKey : AVVideoProfileLevelH264BaselineAutoLevel };
-
-    //视频属性
-    self.dicVideoSetting = @{ AVVideoCodecKey : AVVideoCodecH264,
-                              AVVideoScalingModeKey : AVVideoScalingModeResizeAspect,
-                              AVVideoWidthKey : @(height),
-                              AVVideoHeightKey : @(width),
-                              AVVideoCompressionPropertiesKey : compressionProperties };
-
-}
-
-- (void)setAudioWriter:(AVCaptureAudioDataOutput *)audioOutPut
-{
-    //NSDictionary *dicNormal = [audioOutPut recommendedAudioSettingsForAssetWriterWithOutputFileType:AVFileTypeMPEG4];
-    //self.dicAudioSetting = [[NSMutableDictionary alloc]initWithDictionary:dicNormal];
-
-    //AVAudioSettings.h
-    /*
-     * AVFormatIDKey: 音频编码方式
-     * AVSampleRateKey: 音频采样率HZ
-     * AVNumberOfChannelsKey: 音轨数（单声道，双声道等）
-     * AVEncoderBitRateKey: 编码比特率
-     * AVEncoderBitRatePerChannelKey: 每个音轨的编码比特率，和AVEncoderBitRateKey只设置一个即可
-     * AVEncoderBitRateStrategyKey: 编码策略
-     * kAudioChannelLayoutTag: 声道设置（单声道、立体声、左环绕、右环绕等）
-     */
-
-    //音频设置
-    self.dicAudioSetting = @{AVFormatIDKey: @(kAudioFormatMPEG4AAC),
-                             AVSampleRateKey:@(44100.0),
-                             AVNumberOfChannelsKey:@(1),
-                             AVEncoderBitRateKey:@(64000)};
 }
 
 - (void)addInputs
@@ -376,21 +306,21 @@ typedef NS_ENUM(NSInteger ,KSCaptureWriterStatus)
         _assetVideoWriter.expectsMediaDataInRealTime = YES;
 
         switch (self.captureOrientation) {
-            case AVCaptureVideoOrientationLandscapeRight:
-                break;
             case AVCaptureVideoOrientationPortrait:
-                _assetVideoWriter.transform = CGAffineTransformMakeRotation(M_PI/2);
                 break;
-            case AVCaptureVideoOrientationLandscapeLeft:
-                _assetVideoWriter.transform = CGAffineTransformMakeRotation(M_PI/2*2);
-                break;
-            case AVCaptureVideoOrientationPortraitUpsideDown:
+            case AVCaptureVideoOrientationLandscapeRight:
                 _assetVideoWriter.transform = CGAffineTransformMakeRotation(M_PI/2*3);
                 break;
-            default:
+            case AVCaptureVideoOrientationLandscapeLeft:
                 _assetVideoWriter.transform = CGAffineTransformMakeRotation(M_PI/2);
                 break;
+            case AVCaptureVideoOrientationPortraitUpsideDown:
+                _assetVideoWriter.transform = CGAffineTransformMakeRotation(M_PI/2*2);
+                break;
+            default:
+                break;
         }
+
 
     }
     return _assetVideoWriter;
@@ -413,6 +343,78 @@ typedef NS_ENUM(NSInteger ,KSCaptureWriterStatus)
         dispatch_queue_set_specific(_writerQueue, kKSWriterQueueKey, "true", nil);
     }
     return _writerQueue;
+}
+
+- (NSDictionary *)dicAudioSetting
+{
+    if (!_dicAudioSetting) {
+        //AVAudioSettings.h
+        /*
+         * AVFormatIDKey: 音频编码方式
+         * AVSampleRateKey: 音频采样率HZ
+         * AVNumberOfChannelsKey: 音轨数（单声道，双声道等）
+         * AVEncoderBitRateKey: 编码比特率
+         * AVEncoderBitRatePerChannelKey: 每个音轨的编码比特率，和AVEncoderBitRateKey只设置一个即可
+         * AVEncoderBitRateStrategyKey: 编码策略
+         * kAudioChannelLayoutTag: 声道设置（单声道、立体声、左环绕、右环绕等）
+         */
+
+        //音频设置
+        _dicAudioSetting = @{AVFormatIDKey: @(kAudioFormatMPEG4AAC),
+                             AVSampleRateKey:@(44100.0),
+                             AVNumberOfChannelsKey:@(1),
+                             AVEncoderBitRateKey:@(64000)};
+    }
+    return _dicAudioSetting;
+}
+
+- (NSDictionary *)dicVideoSetting
+{
+    if (!_dicVideoSetting) {
+        //如果写入尺寸（宽或者高）不能被16整除，则解码的时候边缘会丢弃,导致一个像素的绿边
+        //https://discussions.apple.com/message/8525272#8525272
+        //https://stackoverflow.com/questions/29505631/crop-video-in-ios-see-weird-green-line-around-video
+        //如果不能被2整除，则宽或者高+1，解决黑边或者绿边的问题
+        NSInteger width = kAppWidth;
+        NSInteger height = kAppHeight;
+        if (width%2 != 0) {
+            width += 1;
+        }
+        if (height%2 != 0) {
+            height += 1;
+        }
+
+        /**
+         视频相关配置：
+         AVVideoAllowFrameReorderingKey:是否启用帧重新排序，关闭可提高性能，默认YES（为了在保持图像质量的同时实现最佳压缩，一些视频编码器可以对帧重新排序）
+         AverageBitRate：每秒比特率bps（Bit Per Second），决定视频每秒大小（视频体积=视频码率*时间）
+         AVVideoExpectedSourceFrameRateKey：每秒帧率FPS(Frames Per Second)
+         AVVideoMaxKeyFrameIntervalKey:关键帧之间的最大间隔帧数（每隔几个帧设置为关键帧），越大压缩率越高
+         AVVideoMaxKeyFrameIntervalDurationKey：每个关键帧之间的最大时间间隔
+         上面这俩属性限制都会执行以先设置者为准，每X帧一个关键帧或者每Y秒一个关键帧
+         AVVideoProfileLevelKey:Baseline-基本画质。支持I/P 帧，只支持无交错（Progressive）和CAVLC；Main-主流画质。提供I/P/B 帧，支持无交错（Progressive）和交错（Interlaced），也支持CAVLC 和CABAC 的支持；High-高级画质。在main Profile 的基础上增加了8×8内部预测、自定义量化、 无损视频编码和更多的YUV 格式；
+         */
+
+        //写入视频大小
+        CGFloat numPixels = width * height;
+        //每像素比特
+        CGFloat bitsPerPixel = 6.0;
+        CGFloat bitsPerSecond = numPixels * bitsPerPixel;
+
+        // 码率和帧率设置
+        NSDictionary *compressionProperties = @{ AVVideoAverageBitRateKey : @(bitsPerSecond),
+                                                 AVVideoExpectedSourceFrameRateKey : @(30),
+                                                 AVVideoMaxKeyFrameIntervalKey : @(30),
+                                                 AVVideoProfileLevelKey : AVVideoProfileLevelH264BaselineAutoLevel };
+
+        //视频属性
+        _dicVideoSetting = @{ AVVideoCodecKey : AVVideoCodecH264,
+                              AVVideoScalingModeKey : AVVideoScalingModeResizeAspect,
+                              AVVideoWidthKey : @(width),
+                              AVVideoHeightKey : @(height),
+                              AVVideoCompressionPropertiesKey : compressionProperties };
+    }
+    return _dicVideoSetting;
 }
 
 @end
