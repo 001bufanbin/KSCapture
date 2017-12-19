@@ -7,6 +7,7 @@
 //
 
 #import <UIKit/UIKit.h>
+#import "KSTakePhotoOperateView.h"
 
 @protocol KSTakePhotoDelegate <NSObject>
 
@@ -15,6 +16,8 @@
 @end
 
 @interface KSTakePhotoViewController : UIViewController
+
+- (instancetype)initWithType:(KSTakePhotoType)type;
 
 @property (nonatomic ,weak)id<KSTakePhotoDelegate> delegate;         //拍摄完成代理
 

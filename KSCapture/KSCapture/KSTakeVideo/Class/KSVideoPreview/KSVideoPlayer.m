@@ -93,12 +93,12 @@
 #pragma mark - pubLic method
 - (void)showPlayerLayerInView:(UIView *)view
 {
-    //为闪一下黑屏添加专场动画
+    //为闪一下黑屏添加转场动画
     CATransition *animation = [CATransition animation];
     animation.duration = 0.4;
     animation.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseIn];
     animation.type = kCATransitionReveal;
-    [self.playerLayer addAnimation:animation forKey:@"JZGAVPlayerShowAnimation"];
+    [self.playerLayer addAnimation:animation forKey:@"KSAVPlayerShowAnimation"];
 
     [view.layer addSublayer:self.playerLayer];
 }

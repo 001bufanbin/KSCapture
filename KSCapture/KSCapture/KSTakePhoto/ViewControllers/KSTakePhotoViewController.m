@@ -9,13 +9,13 @@
 #import "KSTakePhotoViewController.h"
 #import "KSTakePhotoManager.h"
 #import "KSCaptureView.h"
-#import "KSTakePhotoOpreateView.h"
 
 @interface KSTakePhotoViewController ()<KSTakePhotoOperateViewDelegate,UIAlertViewDelegate>
 
+@property (nonatomic, assign)KSTakePhotoType type; //拍摄类型
 @property (nonatomic ,strong)KSTakePhotoManager      *takePhotoManager;//拍摄管理类
 @property (nonatomic ,strong)KSCaptureView           *captureView;     //拍摄区域视图
-@property (nonatomic ,strong)KSTakePhotoOpreateView  *operateView;     //拍摄界面操作视图
+@property (nonatomic ,strong)KSTakePhotoOperateView  *operateView;     //拍摄界面操作视图
 
 @end
 
@@ -24,6 +24,24 @@
 - (BOOL)prefersStatusBarHidden
 {
     return YES;
+}
+
+- (instancetype)init
+{
+    self = [super init];
+    if (self) {
+        self.type = KSTakePhotoNormal;
+    }
+    return self;
+}
+
+- (instancetype)initWithType:(KSTakePhotoType)type
+{
+    self = [self init];
+    if (self) {
+        self.type = type;
+    }
+    return self;
 }
 
 - (void)viewDidLoad {
@@ -98,19 +116,19 @@
 }
 - (void)btnFlashSwitchClicked:(UIButton *)btn
 {
-    [self.takePhotoManager switchTorchModelSuccess:^(AVCaptureTorchMode currentTorchMode) {
-        switch (currentTorchMode) {
-            case AVCaptureTorchModeOff:
+    [self.takePhotoManager switchFlashModelSuccess:^(AVCaptureFlashMode currentFlashMode) {
+        switch (currentFlashMode) {
+            case AVCaptureFlashModeOff:
                 [btn setImage:[UIImage imageNamed:@"KSCaptureFlash_Off"] forState:UIControlStateNormal];
                 break;
-            case AVCaptureTorchModeOn:
+            case AVCaptureFlashModeOn:
                 [btn setImage:[UIImage imageNamed:@"KSCaptureFlash_On"] forState:UIControlStateNormal];
                 break;
             default:
                 break;
         }
-    } failed:^(NSError *error, AVCaptureTorchMode currentTorchMode) {
-
+    } failed:^(NSError *error, AVCaptureFlashMode currentFlashMode) {
+        NSLog(@"flash switch failed error == %@",error);
     }];
 }
 - (void)btnCameraSwitchClicked:(UIButton *)btn
@@ -145,10 +163,10 @@
     return _captureView;
 }
 
-- (KSTakePhotoOpreateView *)operateView
+- (KSTakePhotoOperateView *)operateView
 {
     if (!_operateView) {
-        _operateView = [[KSTakePhotoOpreateView alloc]initWithFrame:KSCaptureFrame];
+        _operateView = [[KSTakePhotoOperateView alloc]initWithFrame:KSCaptureFrame forType:self.type];
         _operateView.delegate = self;
     }
     return _operateView;

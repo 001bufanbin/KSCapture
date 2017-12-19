@@ -52,7 +52,7 @@
         return;
     }
     AVCaptureConnection *stillImageConnection = self.videoConnection;
-    if (!stillImageConnection) {
+    if (!stillImageConnection || !stillImageConnection.enabled) {
         if (failed) {
             failed(nil);
         }

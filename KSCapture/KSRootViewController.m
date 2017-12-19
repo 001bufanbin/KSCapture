@@ -39,7 +39,7 @@
 
 - (void)takePhoto:(UIButton *)btn
 {
-    KSTakePhotoViewController *takePhotoVC = [[KSTakePhotoViewController alloc]init];
+    KSTakePhotoViewController *takePhotoVC = [[KSTakePhotoViewController alloc]initWithType:KSTakePhotoNormal];
     takePhotoVC.delegate = self;
     [self.navigationController presentViewController:takePhotoVC animated:YES completion:nil];
 }
