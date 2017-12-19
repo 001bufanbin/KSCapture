@@ -85,6 +85,7 @@ static CGFloat const kViewFinish_H = 50;
     [self.viewTop addSubview:self.btnDissmiss];
     [self.viewTop addSubview:self.labTitle];
     [self.viewTop addSubview:self.btnRight];
+    self.btnRight.hidden = YES;
 }
 
 - (void)initRecordView
@@ -193,9 +194,6 @@ static CGFloat const kViewFinish_H = 50;
             self.btnDissmiss.hidden = NO;
             self.btnRight.hidden = NO;
             //拍摄按钮
-            self.btnRecord.frame = self.rectBtnRecordNormal;
-            _btnRecord.layer.cornerRadius = kBtnRecord_W/2;
-            self.btnRecord.layer.borderWidth = 10.0;
             [self.btnRecord setTitle:@"拍摄" forState:UIControlStateNormal];
             //拍摄页面
             [UIView animateWithDuration:0.2 animations:^{
@@ -211,11 +209,6 @@ static CGFloat const kViewFinish_H = 50;
             self.btnRight.hidden = NO;
             //拍摄按钮
             [self.btnRecord setTitle:@"" forState:UIControlStateNormal];
-            self.btnRecord.frame = self.rectBtnRecordRecording;
-            [UIView animateWithDuration:0.2 animations:^{
-                _btnRecord.layer.cornerRadius = kProgress_W/2;
-                self.btnRecord.layer.borderWidth = 26.0;
-            }];
             //拍摄页面
             self.viewRecord.frame = self.rectViewRecordShow;
             //拍摄完成页面
@@ -229,9 +222,6 @@ static CGFloat const kViewFinish_H = 50;
             //拍摄页面
             self.viewRecord.frame = self.rectViewRecordHidden;
             //拍摄按钮
-            self.btnRecord.frame = self.rectBtnRecordRecording;
-            _btnRecord.layer.cornerRadius = kBtnRecord_W/2;
-            self.btnRecord.layer.borderWidth = 10.0;
             [self.btnRecord setTitle:@"" forState:UIControlStateNormal];
             //拍摄完成页面
             [UIView animateWithDuration:0.2 animations:^{

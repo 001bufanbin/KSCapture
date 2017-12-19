@@ -553,8 +553,16 @@ static char* SCRecorderExposureContext = "ExposureContext";
         AVCaptureDevice *videoDevice = [self getCameraDeviceWithPosition:AVCaptureDevicePositionFront];
         NSError *error;
         _videoFrontInput = [[AVCaptureDeviceInput alloc]initWithDevice:videoDevice error:&error];
+
         if (error) {
             NSLog(@"videoFrontInput init error == %@",error);
+        } else {
+            //设置默认初始化闪光灯状态-关闭
+            if ([_videoFrontInput.device hasFlash] && [_videoBackInput.device isFlashAvailable]) {
+                [_videoFrontInput.device lockForConfiguration:nil];
+                _videoFrontInput.device.flashMode = AVCaptureFlashModeOff;
+                [_videoFrontInput.device unlockForConfiguration];
+            }
         }
     }
     return _videoFrontInput;
