@@ -67,4 +67,13 @@
  @return 处理之后的sampleBuffer
  */
 + (CMSampleBufferRef)createOffsetSampleBufferWithSampleBuffer:(CMSampleBufferRef)sampleBuffer withTimeOffset:(CMTime)timeOffset;
+
+
+/**
+ 处理图片方向为正向
+
+ @param image 原始图片
+ @return 处理之后的图片
+ */
++ (UIImage *)fixOrientation:(UIImage *)image;
 @end

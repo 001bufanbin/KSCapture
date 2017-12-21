@@ -78,15 +78,15 @@
 
 // MARK: - KSTakePhotoOperateViewDelegate
 // MARK: 头部视图操作
+- (void)btnDisMissClicked:(UIButton *)btn
+{
+    [self dismissViewControllerAnimated:YES completion:nil];
+}
 - (void)btnRightClicked:(UIButton *)btn
 {
 
 }
 // MARK: 底部视图操作
-- (void)btnDisMissClicked:(UIButton *)btn
-{
-    [self dismissViewControllerAnimated:YES completion:nil];
-}
 - (void)btnTakePhotoClicked:(UIButton *)btn
 {
     if (![KSCaptureTool isAllowAccessCamera]) {

@@ -66,15 +66,19 @@
                                                        completionHandler:^(CMSampleBufferRef imageDataSampleBuffer, NSError *error) {
                                                            if (!error && CMSampleBufferIsValid(imageDataSampleBuffer)) {
                                                                NSData *jpegData = [AVCaptureStillImageOutput jpegStillImageNSDataRepresentation:imageDataSampleBuffer];
-                                                               //将data图片数据转为image对象
-                                                               UIImage *image = [UIImage imageWithData:jpegData];
-                                                               _imgPhoto = image;
-                                                               dispatch_async(dispatch_get_main_queue(), ^{
-                                                                   if (success) {
-                                                                       success(_imgPhoto);
-                                                                   }
-                                                               });
-                                                           }else{
+                                                               if (jpegData) {
+                                                                   //将data图片数据转为image对象并处理图片方向
+                                                                   UIImage *imageOri = [UIImage imageWithData:jpegData];
+                                                                   UIImage *image = [KSCaptureTool fixOrientation:imageOri];
+                                                                   _imgPhoto = image;
+                                                                   dispatch_async(dispatch_get_main_queue(), ^{
+                                                                       if (success) {
+                                                                           success(_imgPhoto);
+                                                                       }
+                                                                   });
+                                                               }
+
+                                                           } else {
                                                                dispatch_async(dispatch_get_main_queue(), ^{
                                                                    if (failed) {
                                                                        failed(error);

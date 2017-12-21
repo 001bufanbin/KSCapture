@@ -13,6 +13,8 @@
     BOOL _adjustingFocus;
     BOOL _needsSwitchBackToContinuousFocus;
 }
+@property (nonatomic ,strong)AVCaptureDeviceInput *videoBackInput;
+@property (nonatomic ,strong)AVCaptureDeviceInput *videoFrontInput;
 @end
 
 @implementation KSAVFoundationManager

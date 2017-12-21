@@ -19,7 +19,7 @@
 @property (nonatomic ,strong)KSCaptureView          *captureView;    //拍摄区域视图
 @property (nonatomic ,strong)KSTakeVideoOperateView *viewOperate;    //拍摄界面操作视图
 @property (nonatomic ,strong)KSVideoPlayer          *player;         //播放类
-@property (nonatomic ,copy)NSString *videoPath;
+@property (nonatomic ,copy)  NSString               *videoPath;      //视频文件路径
 @end
 
 @implementation KSTakeVideoViewController
@@ -88,31 +88,10 @@
     }
     [self dismissViewControllerAnimated:YES completion:nil];
 }
-
 - (void)btnRightClicked:(UIButton *)btn
 {
     [self.recordManager stopRecord];
     [self.viewOperate setViewCamera:KSRecordStateFinish];
-}
-
-- (void)btnFlashSwitchClicked:(UIButton *)btn
-{
-    [self.recordManager switchTorchModelSuccess:^(AVCaptureTorchMode currentTorchMode) {
-        NSLog(@"torch switch sucess torch == %ld",(long)currentTorchMode);
-        [self.viewOperate setBtnTorchForMode:currentTorchMode];
-    } failed:^(NSError *error, AVCaptureTorchMode currentTorchMode) {
-        NSLog(@"torch switch failed error == %@",error);
-    }];
-}
-
-- (void)btnCameraSwitchClicked:(UIButton *)btn
-{
-    [self.recordManager switchCameraSuccess:^(AVCaptureDevicePosition currentPosition) {
-        NSLog(@"camera switch sucess position == %ld",(long)currentPosition);
-        [self.viewOperate setBtnCameraForPosition:currentPosition];
-    } failed:^(NSError *error, AVCaptureDevicePosition currentPosition) {
-        NSLog(@"camera switch failed error == %@",error);
-    }];
 }
 
 - (void)btnRecordClicked:(UIButton *)btn
@@ -166,6 +145,24 @@
             break;
     }
 #endif
+}
+- (void)btnFlashSwitchClicked:(UIButton *)btn
+{
+    [self.recordManager switchTorchModelSuccess:^(AVCaptureTorchMode currentTorchMode) {
+        NSLog(@"torch switch sucess torch == %ld",(long)currentTorchMode);
+        [self.viewOperate setBtnTorchForMode:currentTorchMode];
+    } failed:^(NSError *error, AVCaptureTorchMode currentTorchMode) {
+        NSLog(@"torch switch failed error == %@",error);
+    }];
+}
+- (void)btnCameraSwitchClicked:(UIButton *)btn
+{
+    [self.recordManager switchCameraSuccess:^(AVCaptureDevicePosition currentPosition) {
+        NSLog(@"camera switch sucess position == %ld",(long)currentPosition);
+        [self.viewOperate setBtnCameraForPosition:currentPosition];
+    } failed:^(NSError *error, AVCaptureDevicePosition currentPosition) {
+        NSLog(@"camera switch failed error == %@",error);
+    }];
 }
 
 - (void)btnGiveUpClicked:(UIButton *)btn

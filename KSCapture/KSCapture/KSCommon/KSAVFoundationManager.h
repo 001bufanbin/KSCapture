@@ -36,8 +36,6 @@ typedef NS_ENUM(NSInteger ,KSCaptureType)
 @property (nonatomic ,strong)AVCaptureSession *session;
 //设备输入源（前置或者后置摄像头）
 @property (nonatomic ,strong)AVCaptureDeviceInput *videoInput;
-@property (nonatomic ,strong)AVCaptureDeviceInput *videoBackInput;
-@property (nonatomic ,strong)AVCaptureDeviceInput *videoFrontInput;
 @property (nonatomic ,strong)AVCaptureConnection  *videoConnection;//子类按照outPut重写get方法
 //视频预览
 @property (nonatomic ,strong)AVCaptureVideoPreviewLayer *previewLayer;
@@ -92,7 +90,6 @@ typedef NS_ENUM(NSInteger ,KSCaptureType)
  */
 - (void)switchCameraSuccess:(SwitchCameraSuccessBlock)success failed:(SwitchCameraFailedBlock)failed;
 
-- (AVCaptureDevice *)getCameraDeviceWithPosition:(AVCaptureDevicePosition )position;
 
 //对焦、曝光、白平衡
 @property (readonly, nonatomic) BOOL focusSupported;
