@@ -12,7 +12,7 @@
 
 @interface KSTakePhotoViewController ()<KSTakePhotoOperateViewDelegate,UIAlertViewDelegate>
 
-@property (nonatomic, assign)KSTakePhotoType type; //拍摄类型
+@property (nonatomic, assign)KSTakePhotoType type;   //拍摄类型
 @property (nonatomic ,strong)KSTakePhotoManager      *takePhotoManager;//拍摄管理类
 @property (nonatomic ,strong)KSCaptureView           *captureView;     //拍摄区域视图
 @property (nonatomic ,strong)KSTakePhotoOperateView  *operateView;     //拍摄界面操作视图

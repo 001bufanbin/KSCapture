@@ -53,6 +53,8 @@ static char* SCRecorderExposureContext = "ExposureContext";
 
         //监听当前设备是否正在对焦
         [self addVideoObservers:self.videoInput.device];
+        //初始对焦到屏幕中心
+        [self focusCenter];
         //监听设备方向
         [[KSMotionManager shareInstance] startDeviceMotionUpdate];
 
@@ -218,7 +220,7 @@ static char* SCRecorderExposureContext = "ExposureContext";
     self.videoInput = newInput;
     //设置方向
     [self setOrientationForConnection];
-    //设置镜像（打开之后所见即所得，文字是翻转的）
+    //设置镜像（所见即所得，文字是翻转的）
     [self setMirroredForDeviceInput];
 
     [self.session commitConfiguration];

@@ -205,7 +205,7 @@ typedef NS_ENUM(NSInteger ,KSCaptureWriterStatus)
     dispatch_async(dispatch_get_main_queue(), ^{
         if (self.delegate && [self.delegate respondsToSelector:@selector(updateWriterProgress:)]) {
             [self.delegate updateWriterProgress:fProgress];
-            //NSLog(@"writer duration == %0.2f",self.fDuration);
+            NSLog(@"writer duration == %0.2f",self.fDuration);
         }
     });
 
@@ -320,8 +320,7 @@ typedef NS_ENUM(NSInteger ,KSCaptureWriterStatus)
             default:
                 break;
         }
-
-
+        
     }
     return _assetVideoWriter;
 }

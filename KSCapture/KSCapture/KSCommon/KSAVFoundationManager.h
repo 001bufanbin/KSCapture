@@ -63,7 +63,6 @@ typedef NS_ENUM(NSInteger ,KSCaptureType)
 
 /*****************功能部分****************/
 
-
 /**
  开始拍摄预览
  */
@@ -97,7 +96,7 @@ typedef NS_ENUM(NSInteger ,KSCaptureType)
 @property (readonly, nonatomic) BOOL exposureSupported;
 @property (readonly, nonatomic) CGPoint exposurePointOfInterest;
 
-@property (readonly, nonatomic) BOOL isAdjustingFocus;//是否正在对焦
+@property (readonly, nonatomic) BOOL isAdjustingFocus;   //是否正在对焦
 @property (readonly, nonatomic) BOOL isAdjustingExposure;//是否正在曝光
 
 //坐标转换
