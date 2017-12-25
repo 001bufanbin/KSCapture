@@ -59,10 +59,11 @@
 
 - (void)image:(UIImage *)image didFinishSavingWithError:(NSError *)error contextInfo:(void *)contextInfo
 {
+    NSString *strTitie = @"保存相册成功";
     if (error) {
-        return;
+        strTitie = @"保存相册失败";
     }
-    UIAlertView *alertView = [[UIAlertView alloc]initWithTitle:@"保存相册成功"
+    UIAlertView *alertView = [[UIAlertView alloc]initWithTitle:strTitie
                                                        message:nil
                                                       delegate:self
                                              cancelButtonTitle:@"确定"
@@ -82,7 +83,16 @@
 - (void)takeVideoFinish:(NSString *)videoPath
 {
     NSLog(@"videoPath == %@",videoPath);
-    UIAlertView *alertView = [[UIAlertView alloc]initWithTitle:@"视频拍摄成功"
+    UISaveVideoAtPathToSavedPhotosAlbum(videoPath, self, @selector(video:didFinishSavingWithError:contextInfo:), nil);
+}
+
+- (void)video:(NSString *)videoPath didFinishSavingWithError:(NSError *)error contextInfo:(void *)contextInfo
+{
+    NSString *strTitie = @"保存相册成功";
+    if (error) {
+        strTitie = @"保存相册失败";
+    }
+    UIAlertView *alertView = [[UIAlertView alloc]initWithTitle:strTitie
                                                        message:nil
                                                       delegate:self
                                              cancelButtonTitle:@"确定"

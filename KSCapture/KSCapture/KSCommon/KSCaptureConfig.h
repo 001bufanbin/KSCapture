@@ -18,8 +18,8 @@
 #define kAppHeight             ([UIScreen mainScreen].bounds).size.height
 #define KSCaptureFrame         CGRectMake(0, 0, kAppWidth, kAppHeight)//拍摄区域
 
-//是否具有暂停功能 0-否；1-是
-#define kCanPause              1
+#define kCanPause              1//是否具有暂停功能 0-否；1-是
+#define kCameraMirrored        1//是否前摄像头镜像 0-否；1-是
 
 
 typedef NS_ENUM(NSInteger ,KSRecordState)

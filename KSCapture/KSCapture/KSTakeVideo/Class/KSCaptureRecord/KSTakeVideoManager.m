@@ -11,9 +11,9 @@
 
 @interface KSTakeVideoManager ()<AVCaptureVideoDataOutputSampleBufferDelegate,AVCaptureAudioDataOutputSampleBufferDelegate,KSVideoWriterDelegate>
 
-////设备输入源
+//设备输入源
 @property (nonatomic ,strong)AVCaptureDeviceInput *audioInput;
-////设备输出源
+//设备输出源
 @property (nonatomic ,strong)AVCaptureVideoDataOutput *videoOutPut;
 @property (nonatomic ,strong)AVCaptureAudioDataOutput *audioOutPut;
 //视频写入
@@ -98,6 +98,46 @@
 
     }
     return self;
+}
+
+- (void)setOrientationForConnection
+{
+    if (!self.videoConnection || ![self.videoConnection isVideoOrientationSupported])
+    {
+        return;
+    }
+    AVCaptureVideoOrientation captureOrientation = AVCaptureVideoOrientationPortrait;
+#if kCameraMirrored
+    captureOrientation = AVCaptureVideoOrientationPortrait;
+#else
+    if (self.videoInput == self.videoBackInput) {
+        captureOrientation = AVCaptureVideoOrientationPortrait;
+    } else if (self.videoInput == self.videoFrontInput) {
+        switch (self.deviceOrientation) {
+            case UIDeviceOrientationPortrait:
+                captureOrientation = AVCaptureVideoOrientationPortrait;
+                break;
+            case UIDeviceOrientationLandscapeRight:
+                captureOrientation = AVCaptureVideoOrientationPortraitUpsideDown;
+                break;
+
+            case UIDeviceOrientationLandscapeLeft:
+                captureOrientation = AVCaptureVideoOrientationPortraitUpsideDown;
+                break;
+            case UIDeviceOrientationPortraitUpsideDown:
+                captureOrientation = AVCaptureVideoOrientationPortrait;
+                break;
+            default:
+                captureOrientation = AVCaptureVideoOrientationPortrait;
+                break;
+        }
+    }
+#endif
+
+    if (self.videoConnection.videoOrientation == captureOrientation) {
+        return;
+    }
+    [self.videoConnection setVideoOrientation:captureOrientation];
 }
 
 - (void)startRecord
@@ -365,9 +405,9 @@
 #pragma mark Writer
 - (void)initAssetWriter
 {
-    UIDeviceOrientation deviceOrientation = [KSMotionManager shareInstance].orientation;
+    self.deviceOrientation = [KSMotionManager shareInstance].orientation;
     KSVideoWriter *writer = [[KSVideoWriter alloc]initWithVideoPath:self.videoPath
-                                           currentDeviceOrientation:deviceOrientation];
+                                           currentDeviceOrientation:self.deviceOrientation];
     writer.delegate = self;
     self.writer = writer;
 }

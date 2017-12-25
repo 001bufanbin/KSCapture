@@ -13,8 +13,6 @@
     BOOL _adjustingFocus;
     BOOL _needsSwitchBackToContinuousFocus;
 }
-@property (nonatomic ,strong)AVCaptureDeviceInput *videoBackInput;
-@property (nonatomic ,strong)AVCaptureDeviceInput *videoFrontInput;
 @end
 
 @implementation KSAVFoundationManager
@@ -136,10 +134,12 @@ static char* SCRecorderExposureContext = "ExposureContext";
 
     if (error) {
         if (failed) {
+            NSLog(@"torch switch failed error == %@",error);
             failed(error,self.videoInput.device.torchMode);
         }
     } else {
         if (success) {
+            NSLog(@"torch switch sucess torch == %ld",(long)self.videoInput.device.torchMode);
             success(self.videoInput.device.torchMode);
         }
     }
@@ -179,10 +179,12 @@ static char* SCRecorderExposureContext = "ExposureContext";
 
     if (error) {
         if (failed) {
+            NSLog(@"flash switch failed error == %@",error);
             failed(error,self.videoInput.device.flashMode);
         }
     } else {
         if (success) {
+            NSLog(@"flash switch success flash == %ld",(long)self.videoInput.device.flashMode);
             success(self.videoInput.device.flashMode);
         }
     }
@@ -218,19 +220,24 @@ static char* SCRecorderExposureContext = "ExposureContext";
     }
     //重新设置输入设备
     self.videoInput = newInput;
+
     //设置方向
     [self setOrientationForConnection];
+#if kCameraMirrored
     //设置镜像（所见即所得，文字是翻转的）
     [self setMirroredForDeviceInput];
+#endif
 
     [self.session commitConfiguration];
 
     if (switchSuccess) {
         if (success) {
+            NSLog(@"camera switch sucess position == %ld",(long)self.videoInput.device.position);
             success(self.videoInput.device.position);
         }
     } else {
         if (failed) {
+            NSLog(@"camera switch failed!");
             failed(nil, self.videoInput.device.position);
         }
     }
@@ -283,34 +290,6 @@ static char* SCRecorderExposureContext = "ExposureContext";
 
 }
 
-- (void)setOrientationForConnection
-{
-    if (!self.videoConnection || ![self.videoConnection isVideoOrientationSupported])
-        return;
-
-    AVCaptureVideoOrientation captureOrientation = AVCaptureVideoOrientationPortrait;
-    switch (self.deviceOrientation) {
-        case UIDeviceOrientationLandscapeLeft:
-            captureOrientation = AVCaptureVideoOrientationLandscapeRight;
-            break;
-        case UIDeviceOrientationLandscapeRight:
-            captureOrientation = AVCaptureVideoOrientationLandscapeLeft;
-            break;
-        case UIDeviceOrientationPortrait:
-            captureOrientation = AVCaptureVideoOrientationPortrait;
-            break;
-        case UIDeviceOrientationPortraitUpsideDown:
-            captureOrientation = AVCaptureVideoOrientationPortraitUpsideDown;
-            break;
-        default:
-            break;
-    }
-    if (self.videoConnection.videoOrientation == captureOrientation) {
-        return;
-    }
-    [self.videoConnection setVideoOrientation:captureOrientation];
-}
-
 //设置视频镜像
 - (void)setMirroredForDeviceInput
 {
@@ -321,6 +300,19 @@ static char* SCRecorderExposureContext = "ExposureContext";
 
     BOOL mirrored = (self.videoInput == self.videoFrontInput);
     self.videoConnection.videoMirrored = mirrored;
+}
+
+- (void)setOrientationForConnection
+{
+    if (!self.videoConnection || ![self.videoConnection isVideoOrientationSupported])
+    {
+        return;
+    }
+    AVCaptureVideoOrientation captureOrientation = AVCaptureVideoOrientationPortrait;
+    if (self.videoConnection.videoOrientation == captureOrientation) {
+        return;
+    }
+    [self.videoConnection setVideoOrientation:captureOrientation];
 }
 
 #pragma mark - FOCUS

@@ -45,6 +45,39 @@
     }
 }
 
+- (void)setOrientationForConnection
+{
+    if (!self.videoConnection || ![self.videoConnection isVideoOrientationSupported])
+    {
+        return;
+    }
+
+    AVCaptureVideoOrientation captureOrientation = AVCaptureVideoOrientationPortrait;
+
+    switch (self.deviceOrientation) {
+        case UIDeviceOrientationLandscapeLeft:
+            captureOrientation = AVCaptureVideoOrientationLandscapeRight;
+            break;
+        case UIDeviceOrientationLandscapeRight:
+            captureOrientation = AVCaptureVideoOrientationLandscapeLeft;
+            break;
+        case UIDeviceOrientationPortrait:
+            captureOrientation = AVCaptureVideoOrientationPortrait;
+            break;
+        case UIDeviceOrientationPortraitUpsideDown:
+            captureOrientation = AVCaptureVideoOrientationPortraitUpsideDown;
+            break;
+        default:
+            captureOrientation = AVCaptureVideoOrientationPortrait;
+            break;
+    }
+
+    if (self.videoConnection.videoOrientation == captureOrientation) {
+        return;
+    }
+    [self.videoConnection setVideoOrientation:captureOrientation];
+}
+
 - (void)takePhotoSuccess:(TakePhotoSuccessBlock)success failed:(TakePhotoFailedBlock)failed
 {
     if (![KSCaptureTool isAllowAccessCamera]) {

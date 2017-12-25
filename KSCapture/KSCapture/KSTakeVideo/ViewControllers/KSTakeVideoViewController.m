@@ -149,19 +149,15 @@
 - (void)btnFlashSwitchClicked:(UIButton *)btn
 {
     [self.recordManager switchTorchModelSuccess:^(AVCaptureTorchMode currentTorchMode) {
-        NSLog(@"torch switch sucess torch == %ld",(long)currentTorchMode);
         [self.viewOperate setBtnTorchForMode:currentTorchMode];
     } failed:^(NSError *error, AVCaptureTorchMode currentTorchMode) {
-        NSLog(@"torch switch failed error == %@",error);
     }];
 }
 - (void)btnCameraSwitchClicked:(UIButton *)btn
 {
     [self.recordManager switchCameraSuccess:^(AVCaptureDevicePosition currentPosition) {
-        NSLog(@"camera switch sucess position == %ld",(long)currentPosition);
         [self.viewOperate setBtnCameraForPosition:currentPosition];
     } failed:^(NSError *error, AVCaptureDevicePosition currentPosition) {
-        NSLog(@"camera switch failed error == %@",error);
     }];
 }
 
